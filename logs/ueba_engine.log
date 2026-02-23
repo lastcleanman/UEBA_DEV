@@ -3554,3 +3554,34 @@ py4j.Py4JException: Method pandasStructHandlingMode([]) does not exist
 2026-02-23 08:59:54,742 - Plugin-AbnormalTime - INFO - 🕒 [Plugin] 심야/주말 비정상 접근 분석 중...
 2026-02-23 08:59:58,887 - Plugin-ElasticLoad - ERROR - ❌ ES 적재 실패: <urlopen error [Errno -2] Name or service not known>
 2026-02-23 08:59:58,977 - CoreEngine - INFO - 📜 [History] Endpoint_Logs 완료 (9건)
+2026-02-23 09:00:28,980 - CoreEngine - INFO - 
+--- 2026-02-23 09:00:28.979970 수집 주기 시작 ---
+2026-02-23 09:00:32,944 - Plugin-Input - ERROR - ❌ [ueba_postgresDB] 수집 에러: (psycopg2.OperationalError) could not translate host name "ueba-postgres" to address: Name or service not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-23 09:00:32,944 - CoreEngine - INFO - ⏩ [ueba_postgresDB] 신규 수집 데이터 없음.
+2026-02-23 09:00:32,966 - CoreEngine - INFO - 📜 [History] ueba_postgresDB 완료 (0건)
+2026-02-23 09:00:33,034 - Plugin-Input - INFO - ✅ [ueba_mariaDB] 추출 완료 (3000건) / 테이블: sj_ueba_hr
+2026-02-23 09:00:33,141 - Plugin-RuleEngine - INFO - 🕵️ [Plugin] 룰 기반 위협 분석(Rule Engine) 시작...
+2026-02-23 09:00:33,141 - Plugin-RuleEngine - INFO - ✅ [Plugin] 위협 분석 및 스코어링 완료
+2026-02-23 09:00:33,142 - Plugin-AbnormalTime - INFO - 🕒 [Plugin] 심야/주말 비정상 접근 분석 중...
+2026-02-23 09:00:37,288 - Plugin-ElasticLoad - ERROR - ❌ ES 적재 실패: <urlopen error [Errno -2] Name or service not known>
+2026-02-23 09:00:37,374 - CoreEngine - INFO - 📜 [History] Auth_Logs 완료 (9건)
+2026-02-23 09:00:37,442 - Plugin-Input - INFO - ✅ [ueba_mariaDB] 추출 완료 (3000건) / 테이블: sj_ueba_hr
+2026-02-23 09:00:37,531 - Plugin-RuleEngine - INFO - 🕵️ [Plugin] 룰 기반 위협 분석(Rule Engine) 시작...
+2026-02-23 09:00:37,532 - Plugin-RuleEngine - INFO - ✅ [Plugin] 위협 분석 및 스코어링 완료
+2026-02-23 09:00:37,532 - Plugin-AbnormalTime - INFO - 🕒 [Plugin] 심야/주말 비정상 접근 분석 중...
+2026-02-23 09:00:41,557 - Plugin-ElasticLoad - ERROR - ❌ ES 적재 실패: <urlopen error [Errno -2] Name or service not known>
+2026-02-23 09:00:41,642 - CoreEngine - INFO - 📜 [History] Web_Logs 완료 (9건)
+2026-02-23 09:00:41,712 - Plugin-Input - INFO - ✅ [ueba_mariaDB] 추출 완료 (3000건) / 테이블: sj_ueba_hr
+2026-02-23 09:00:41,798 - Plugin-RuleEngine - INFO - 🕵️ [Plugin] 룰 기반 위협 분석(Rule Engine) 시작...
+2026-02-23 09:00:41,798 - Plugin-RuleEngine - INFO - ✅ [Plugin] 위협 분석 및 스코어링 완료
+2026-02-23 09:00:41,798 - Plugin-AbnormalTime - INFO - 🕒 [Plugin] 심야/주말 비정상 접근 분석 중...
+2026-02-23 09:00:45,935 - Plugin-ElasticLoad - ERROR - ❌ ES 적재 실패: <urlopen error [Errno -2] Name or service not known>
+2026-02-23 09:00:46,041 - CoreEngine - INFO - 📜 [History] Firewall_Logs 완료 (9건)
+2026-02-23 09:00:46,109 - Plugin-Input - INFO - ✅ [ueba_mariaDB] 추출 완료 (3000건) / 테이블: sj_ueba_hr
+2026-02-23 09:00:46,194 - Plugin-RuleEngine - INFO - 🕵️ [Plugin] 룰 기반 위협 분석(Rule Engine) 시작...
+2026-02-23 09:00:46,194 - Plugin-RuleEngine - INFO - ✅ [Plugin] 위협 분석 및 스코어링 완료
+2026-02-23 09:00:46,194 - Plugin-AbnormalTime - INFO - 🕒 [Plugin] 심야/주말 비정상 접근 분석 중...
+2026-02-23 09:00:50,209 - Plugin-ElasticLoad - ERROR - ❌ ES 적재 실패: <urlopen error [Errno -2] Name or service not known>
+2026-02-23 09:00:50,310 - CoreEngine - INFO - 📜 [History] Endpoint_Logs 완료 (9건)
