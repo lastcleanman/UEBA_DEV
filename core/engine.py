@@ -147,26 +147,44 @@ def run_input(config):
     for source in sources:
         start_time = datetime.now()
         source_name = source.get('name')
-        watermark_col = source.get("watermark_col", "final_ts")
+        watermark_col = source.get("watermark_col", "timestamp") 
         out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_input.parquet")
         
         try:
             last_ts = get_last_ts(source_name)
-            if last_ts == "1970-01-01 00:00:00": last_ts = source.get("watermark_default", "1970-01-01 00:00:00")
+            if last_ts == "1970-01-01 00:00:00": 
+                last_ts = source.get("watermark_default", "1970-01-01 00:00:00")
                 
             raw_pandas_df = input_plugin.fetch_data(source, config, last_updated=last_ts)
             
+            # ⭐️ 데이터가 0건일 때 이전 주기의 찌꺼기 파일(Ghost Data) 강제 삭제
             if raw_pandas_df is None or raw_pandas_df.dropna(axis=1, how='all').empty:
-                logger.info(f"⏩ [{source_name}] 신규 수집 데이터 없음.")
+                logger.info(f"⏩ [{source_name}] 신규 수집 데이터 없음 (마지막 수집: {last_ts})")
                 save_history(db_engine, source_name, 0, "SUCCESS", start_time=start_time)
-                if os.path.exists(out_path): os.remove(out_path)
+                
+                # 삭제 로직 추가: input, process, detect 임시 파일을 모두 날립니다.
+                for suffix in ["_input.parquet", "_process.parquet", "_detect.parquet"]:
+                    ghost_file = os.path.join(INTERMEDIATE_PATH, f"{source_name}{suffix}")
+                    if os.path.exists(ghost_file):
+                        if os.path.isdir(ghost_file): 
+                            shutil.rmtree(ghost_file) # Spark가 만든 폴더형 parquet 삭제
+                        else: 
+                            os.remove(ghost_file)     # Pandas가 만든 단일 파일 삭제
                 continue
                 
+            # ... (이하 워터마크 자동 인식 및 저장 로직은 기존과 동일) ...
+            if watermark_col not in raw_pandas_df.columns and '@timestamp' in raw_pandas_df.columns:
+                watermark_col = '@timestamp'
+
             if watermark_col in raw_pandas_df.columns:
-                set_last_ts(source_name, str(raw_pandas_df[watermark_col].max()))
+                new_ts = str(raw_pandas_df[watermark_col].max())
+                set_last_ts(source_name, new_ts)
+                logger.info(f"🕒 [{source_name}] 워터마크 갱신 완료: {new_ts}")
+            else:
+                logger.warning(f"⚠️ [{source_name}] 워터마크 컬럼('{watermark_col}')이 없습니다! 중복 수집 발생 가능.")
                 
             raw_pandas_df.to_parquet(out_path, index=False)
-            logger.info(f"✅ [{source_name}] 데이터 수집 및 임시 저장 완료 (Input -> Process 대기)")
+            logger.info(f"✅ [{source_name}] 데이터 수집 완료 ({len(raw_pandas_df)}건) (Input -> Process 대기)")
 
         except Exception as e:
             logger.error(f"❌ [{source_name}] Input 에러: {e}")

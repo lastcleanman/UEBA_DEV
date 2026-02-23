@@ -1,2 +1,5 @@
+sqlalchemy
+pymysql
+psycopg2-binary
 pandas
 pyarrow

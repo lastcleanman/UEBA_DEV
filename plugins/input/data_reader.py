@@ -10,7 +10,9 @@ def fetch_db(source, last_updated):
     db_type = source.get("type", "").lower()
     db_name = source.get("database")
     table = source.get("table_name")
-    w_col = source.get("watermark_col")
+    
+    # ⭐️ 수정: DB 테이블도 기본 워터마크 컬럼을 지정하여 누락 방지
+    w_col = source.get("watermark_col", "timestamp") 
     
     url = f"postgresql+psycopg2://{source['user']}:{source['password']}@{source['host']}:{source['port']}/{db_name}" if "postgres" in db_type else f"mysql+pymysql://{source['user']}:{source['password']}@{source['host']}:{source['port']}/{db_name}"
     
@@ -38,11 +40,11 @@ def fetch_data(source, global_config, last_updated="1970-01-01 00:00:00"):
     source_name = source.get("name")
     try:
         df = None
-        if source.get("type") in ["postgres", "mariadb"]: df = fetch_db(source, last_updated)
+        if source.get("type") in ["postgres", "mariadb"]: 
+            df = fetch_db(source, last_updated)
         elif source.get("type") == "file":
             files = glob.glob(source.get("path", ""))
             
-            # ⭐️ 수정된 부분: .log 확장자도 JSON 형식으로 읽도록 추가!
             df_list = []
             for f in files:
                 if f.endswith(".json") or f.endswith(".log"):
@@ -50,12 +52,26 @@ def fetch_data(source, global_config, last_updated="1970-01-01 00:00:00"):
                 else:
                     df_list.append(pd.read_csv(f))
                     
-            if df_list: df = pd.concat(df_list, ignore_index=True)
+            if df_list: 
+                df = pd.concat(df_list, ignore_index=True)
+                
+                # ⭐️ 핵심 수정: 파일 기반 로그 데이터에도 워터마크(시간) 필터링 적용!
+                w_col = source.get("watermark_col", "timestamp")
+                if w_col not in df.columns and "@timestamp" in df.columns:
+                    w_col = "@timestamp"
+                    
+                if w_col in df.columns:
+                    original_count = len(df)
+                    # 데이터프레임에서 '마지막 수집 시간' 이후의 데이터만 잘라내기
+                    df = df[df[w_col].astype(str) > str(last_updated)]
+                    if original_count != len(df):
+                        logger.info(f"🔍 [{source_name}] 워터마크 적용: 전체 {original_count}건 중 신규 {len(df)}건만 추출")
 
         if df is not None and not df.empty:
             hr_lookup = get_hr_lookup(global_config)
             if hr_lookup and "user_id" in df.columns:
                 df["emp_name"] = df["user_id"].astype(str).map(hr_lookup).fillna("Unknown_User")
+        
         return df
     except Exception as e:
         logger.error(f"❌ [{source_name}] 수집 에러: {e}")
