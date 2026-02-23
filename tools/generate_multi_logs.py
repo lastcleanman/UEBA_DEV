@@ -79,13 +79,14 @@ def write_log(filename, data):
 def generate_logs(count=5):
     if not USER_ROSTER: return
         
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # 1. Elasticsearch가 100% 인식하는 ISO8601 표준 포맷(예: 2026-02-23T09:10:00.123456)으로 변경
+    now_str = datetime.now().isoformat() 
     
     for _ in range(count):
         actor = random.choice(USER_ROSTER)
         
         base_info = {
-            "timestamp": now_str,
+            "@timestamp": now_str,  # 2. Kibana 표준 시간 필드명인 @timestamp 로 변경
             "user_id": actor["user_id"], 
             "user": actor["user"],       
             "department": actor["dept"]  

@@ -4,6 +4,8 @@ import json
 import importlib
 import glob
 import time
+import argparse
+import shutil
 from datetime import datetime
 from sqlalchemy import create_engine, text
 import pandas as pd
@@ -16,10 +18,13 @@ logger = get_logger("CoreEngine")
 CONFIG_FILE = "/UEBA_DEV/conf/ueba_settings.json"
 WATERMARK_FILE = "/UEBA_DEV/conf/watermark.json"
 
+# ⭐️ 단계별 독립 실행을 위한 중간 데이터 저장소
+INTERMEDIATE_PATH = "/UEBA_DEV/data/intermediate"
+os.makedirs(INTERMEDIATE_PATH, exist_ok=True)
+
 def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f: return json.load(f)
 
-# 이력 관리는 HR MariaDB(이름이 ueba_mariaDB인 소스)를 찾아 저장
 def get_db_engine(config):
     conf = next((s for s in config.get("sources", []) if s.get("name") == "ueba_mariaDB"), None)
     if not conf: return None
@@ -53,7 +58,6 @@ def set_last_ts(source_name, ts):
         with open(WATERMARK_FILE, "w") as f: json.dump(data, f)
     except: pass
 
-# ⭐️ 플러그인 실행 시 global_config를 함께 넘겨줍니다.
 def execute_plugins(spark, df, plugin_list, step_name, global_config, source_name=None):
     for path in plugin_list:
         try:
@@ -64,66 +68,202 @@ def execute_plugins(spark, df, plugin_list, step_name, global_config, source_nam
         except Exception as e: logger.error(f"❌ [{step_name}] {path} 실패: {e}")
     return df
 
-def run_pipeline(spark, config):
+# ==========================================
+# 🚀 1. 수집 단계 (Input)
+# ==========================================
+def run_input(config):
     db_engine = get_db_engine(config)
     pipeline = config.get("pipeline", {})
     sources = [s for s in config.get("sources", []) if s.get("enabled", True)]
-
     input_plugin = importlib.import_module(pipeline.get("input")[0])
 
-    total_processed = 0
     for source in sources:
         start_time = datetime.now()
         source_name = source.get('name')
         watermark_col = source.get("watermark_col", "final_ts")
+        out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_input.parquet")
         
         try:
             last_ts = get_last_ts(source_name)
             if last_ts == "1970-01-01 00:00:00": last_ts = source.get("watermark_default", "1970-01-01 00:00:00")
                 
-            # 1. Input (수집) - global_config 전달
             raw_pandas_df = input_plugin.fetch_data(source, config, last_updated=last_ts)
             
             if raw_pandas_df is None or raw_pandas_df.dropna(axis=1, how='all').empty:
                 logger.info(f"⏩ [{source_name}] 신규 수집 데이터 없음.")
                 save_history(db_engine, source_name, 0, "SUCCESS", start_time=start_time)
+                # 이전 파일 삭제 (다음 단계가 옛날 데이터를 읽지 않도록 방지)
+                if os.path.exists(out_path): os.remove(out_path)
                 continue
                 
-            new_max_ts = str(raw_pandas_df[watermark_col].max()) if watermark_col in raw_pandas_df.columns else None
+            # 워터마크 갱신 및 파일 저장
+            if watermark_col in raw_pandas_df.columns:
+                set_last_ts(source_name, str(raw_pandas_df[watermark_col].max()))
+                
+            raw_pandas_df.to_parquet(out_path, index=False)
+            logger.info(f"✅ [{source_name}] 데이터 수집 및 임시 저장 완료 (Input -> Process 대기)")
+
+        except Exception as e:
+            logger.error(f"❌ [{source_name}] Input 에러: {e}")
+            save_history(db_engine, source_name, 0, "FAIL", str(e), start_time=start_time)
+
+# ==========================================
+# 🛠️ 2. 정제 단계 (Process)
+# ==========================================
+def run_process(spark, config):
+    pipeline = config.get("pipeline", {})
+    sources = [s for s in config.get("sources", []) if s.get("enabled", True)]
+
+    for source in sources:
+        source_name = source.get('name')
+        in_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_input.parquet")
+        out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_process.parquet")
+        
+        # ⭐️ 수정된 부분: 데이터가 없으면 이유를 로그로 출력!
+        if not os.path.exists(in_path):
+            logger.warning(f"⚠️ [{source_name}] 수집된 데이터가 없습니다. 먼저 '1. 데이터 수집(Input)'을 실행해주세요.")
+            continue
+        
+        try:
+            raw_pandas_df = pd.read_parquet(in_path)
             dict_list = raw_pandas_df.replace({pd.NA: None}).where(pd.notnull(raw_pandas_df), None).to_dict(orient='records')
             if not dict_list: continue
 
             spark_df = spark.createDataFrame(dict_list)
-
-            # 2. Process (정제)
             clean_df = execute_plugins(spark, spark_df, pipeline.get("process", []), "Process", config, source_name)
-            if clean_df.count() == 0: continue
-            if new_max_ts: set_last_ts(source_name, new_max_ts)
-
-            # 3. Detect (위협 분석)
-            detected_df = execute_plugins(spark, clean_df, pipeline.get("detection", []), "Detection", config)
             
-            # 4. Output (적재)
+            if clean_df.count() > 0:
+                clean_df.write.mode("overwrite").parquet(out_path)
+                logger.info(f"✅ [{source_name}] 데이터 정제 완료 (Process -> Detection 대기)")
+        except Exception as e: logger.error(f"❌ [{source_name}] Process 에러: {e}")
+
+# ==========================================
+# 🤖 3. 분석 단계 (Detect: Rule + ML)
+# ==========================================
+def run_detect(spark, config):
+    pipeline = config.get("pipeline", {})
+    sources = [s for s in config.get("sources", []) if s.get("enabled", True)]
+
+    for source in sources:
+        source_name = source.get('name')
+        in_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_process.parquet")
+        out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_detect.parquet")
+        
+        # ⭐️ 수정된 부분: 데이터가 없으면 이유를 로그로 출력!
+        if not os.path.exists(in_path):
+            logger.warning(f"⚠️ [{source_name}] 정제된 데이터가 없습니다. 분석을 위해 이전 단계부터 실행해주세요.")
+            continue
+        
+        try:
+            clean_df = spark.read.parquet(in_path)
+            detected_df = execute_plugins(spark, clean_df, pipeline.get("detection", []), "Detection", config)
+            detected_df.write.mode("overwrite").parquet(out_path)
+            logger.info(f"✅ [{source_name}] 룰/ML 위협 분석 완료 (Detection -> Output 대기)")
+        except Exception as e: logger.error(f"❌ [{source_name}] Detect 에러: {e}")
+
+# ==========================================
+# 💾 4. 적재 단계 (Output: Elastic Load)
+# ==========================================
+def run_output(spark, config):
+    db_engine = get_db_engine(config)
+    pipeline = config.get("pipeline", {})
+    sources = [s for s in config.get("sources", []) if s.get("enabled", True)]
+
+    for source in sources:
+        start_time = datetime.now()
+        source_name = source.get('name')
+        in_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_detect.parquet")
+        
+        # ⭐️ 수정된 부분: 데이터가 없으면 이유를 로그로 출력!
+        if not os.path.exists(in_path):
+            logger.warning(f"⚠️ [{source_name}] 적재할 분석 완료 데이터가 없습니다. 이전 단계를 먼저 실행해주세요.")
+            continue
+        
+        try:
+            detected_df = spark.read.parquet(in_path)
             execute_plugins(spark, detected_df, pipeline.get("output", []), "Output", config)
             
             count = detected_df.count()
             save_history(db_engine, source_name, count, "SUCCESS", start_time=start_time)
-            total_processed += count
-
-        except Exception as e:
-            logger.error(f"❌ [{source_name}] 파이프라인 에러: {e}")
+            
+        except Exception as e: 
+            logger.error(f"❌ [{source_name}] Output 에러: {e}")
             save_history(db_engine, source_name, 0, "FAIL", str(e), start_time=start_time)
+
+# ==========================================
+# 🎯 메인 실행기 (하이브리드 모드 지원)
+# ==========================================
+MODE_FILE = "/UEBA_DEV/data/mode.txt"
+
+def get_current_mode():
+    try:
+        if os.path.exists(MODE_FILE):
+            with open(MODE_FILE, "r") as f:
+                return f.read().strip().lower()
+    except: pass
+    return "manual" # 기본값은 수동 모드
 
 def main():
     config = load_config()
-    logger.info("🚀 UEBA Enterprise Engine 가동 (Single-Config Architecture)")
     spark = get_spark_session()
+    logger.info("🚀 UEBA Enterprise Engine 기동 (Hybrid Mode)")
     
     try:
+        last_mode = None
         while True:
-            logger.info(f"\n--- {datetime.now()} 수집 주기 시작 ---")
-            run_pipeline(spark, load_config()) # 매 주기마다 설정파일 갱신 반영
-            time.sleep(30)
+            current_mode = get_current_mode()
+            
+            # 모드가 변경되었을 때만 로그 출력
+            if current_mode != last_mode:
+                logger.info(f"🔄 엔진 모드 변경 감지: [{current_mode.upper()}] 모드로 동작합니다.")
+                last_mode = current_mode
+                
+            # ----------------------------------------
+            # 🔄 1. 자동 데몬 모드 (30초 간격 무한루프)
+            # ----------------------------------------
+            if current_mode == "daemon":
+                logger.info(f"\n--- 🚀 {datetime.now()} [자동 데몬] 수집 주기 시작 ---")
+                config = load_config()
+                run_input(config)
+                run_process(spark, config)
+                run_detect(spark, config)
+                run_output(spark, config)
+                
+                # 30초를 대기하되, 도중에 모드가 '수동'으로 바뀌면 즉시 탈출하도록 1초씩 쪼개서 대기
+                for _ in range(30):
+                    if get_current_mode() != "daemon": break
+                    time.sleep(1)
+                    
+            # ----------------------------------------
+            # 🖐️ 2. 수동 대기 모드 (플래그 파일 감지)
+            # ----------------------------------------
+            elif current_mode == "manual":
+                # ⭐️ 프론트엔드의 버튼 ID와 완벽하게 일치시켰습니다!
+                for step_name in ["all", "input", "rule", "ml", "elastic"]:
+                    flag_file = f"/UEBA_DEV/data/trigger_{step_name}.flag"
+                    
+                    if os.path.exists(flag_file):
+                        os.remove(flag_file) # 확인 즉시 삭제 (중복 방지)
+                        logger.info(f"\n--- 🚀 [수동 감지] {step_name.upper()} 단계 강제 실행 ---")
+                        config = load_config()
+                        
+                        # 1. 수집(Input) 버튼 누르면: 수집 + 정제(Process)를 세트로 실행!
+                        if step_name in ["all", "input"]: 
+                            run_input(config)
+                            run_process(spark, config)
+                            
+                        # 2. 룰(Rule)이나 ML 버튼 누르면: 위협 분석(Detect) 실행!
+                        if step_name in ["all", "rule", "ml"]: 
+                            run_detect(spark, config)
+                            
+                        # 3. ES 적재(Load) 버튼 누르면: 최종 적재(Output) 실행!
+                        if step_name in ["all", "elastic"]: 
+                            run_output(spark, config)
+                        
+                        logger.info(f"✅ {step_name.upper()} 명령 처리 완료. 다시 대기합니다.")
+                
+                time.sleep(1) # 1초 간격으로 플래그만 체크 (부하 없음)
+
     except KeyboardInterrupt: pass
     finally: spark.stop()
 

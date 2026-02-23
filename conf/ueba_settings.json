@@ -1,8 +1,8 @@
 {
   "system": {
-    "es_host": "elasticsearch",
+    "es_host": "ueba-elasticsearch",
     "es_port": "9200",
-    "es_index": "ueba-alerts",
+    "es_index": "ueba-alerts-v0.1",
     "base_dir": "/UEBA_DEV"
   },
   "pipeline": {
@@ -10,7 +10,8 @@
     "process": ["plugins.process.normalizer"],
     "detection": [
       "plugins.detect.rule_engine",
-      "plugins.detect.rule_abnormal_time"
+      "plugins.detect.rule_abnormal_time",
+      "plugins.detect.ml_anomaly"
     ],
     "output": ["plugins.output.elastic_load"]
   },
@@ -18,7 +19,7 @@
     {
       "name": "ueba_postgresDB",
       "type": "postgres",
-      "enabled": true,
+      "enabled": false,
       "host": "ueba-postgres",
       "port": "5432",
       "user": "admin",

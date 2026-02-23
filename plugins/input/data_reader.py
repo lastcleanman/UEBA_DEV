@@ -41,7 +41,15 @@ def fetch_data(source, global_config, last_updated="1970-01-01 00:00:00"):
         if source.get("type") in ["postgres", "mariadb"]: df = fetch_db(source, last_updated)
         elif source.get("type") == "file":
             files = glob.glob(source.get("path", ""))
-            df_list = [pd.read_json(f, lines=True) if f.endswith(".json") else pd.read_csv(f) for f in files]
+            
+            # ⭐️ 수정된 부분: .log 확장자도 JSON 형식으로 읽도록 추가!
+            df_list = []
+            for f in files:
+                if f.endswith(".json") or f.endswith(".log"):
+                    df_list.append(pd.read_json(f, lines=True))
+                else:
+                    df_list.append(pd.read_csv(f))
+                    
             if df_list: df = pd.concat(df_list, ignore_index=True)
 
         if df is not None and not df.empty:

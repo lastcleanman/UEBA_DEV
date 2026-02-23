@@ -1,22 +1,97 @@
 services:
+  # ----------------------------------------
+  # 1. 🚀 신규 UEBA Core Engine (우리가 만든 것)
+  # ----------------------------------------
   ueba-engine-dev:
-    build: .                          # 현재 폴더의 Dockerfile로 빌드
-    image: ueba-engine:dev            # ⭐️ 기존과 구분되는 새로운 개발용 이미지
-    container_name: ueba-engine-dev   # ⭐️ 컨테이너 이름 분리
+    build: .
+    image: ueba-engine:dev
+    container_name: ueba-engine-dev
     restart: always             
     user: root                  
     volumes:
-      - ./:/UEBA_DEV                  # ⭐️ 호스트의 UEBA_DEV를 컨테이너의 UEBA_DEV로 마운트!
+      - ./:/UEBA_DEV
     working_dir: /UEBA_DEV
     environment:
       - TZ=Asia/Seoul
-      - PYTHONPATH=/UEBA_DEV          # ⭐️ 파이썬 라이브러리 인식 경로
+      - PYTHONPATH=/UEBA_DEV
     command: >
       bash -c "python3 /UEBA_DEV/core/engine.py"
     networks:
-      - ueba_shared_net
-      
+      - ueba-network
+
+  # ----------------------------------------
+  # 2. 🗄️ 백엔드 인프라 (DB & Search)
+  # ----------------------------------------
+  ueba-postgres:
+    image: postgres:15
+    container_name: ueba-postgres
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=admin       
+      - POSTGRES_PASSWORD=Suju!0901   
+      - POSTGRES_DB=ueba_db
+    volumes: 
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - ueba-network
+
+  ueba-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: ueba-elasticsearch
+    restart: always
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # 로컬 개발 편의성을 위해 SSL / 인증 보안 해제 ( HTTP 통신 )
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    networks:
+      - ueba-network
+
+  ueba-kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: ueba-kibana
+    restart: always
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://ueba-elasticsearch:9200
+    depends_on:
+      - ueba-elasticsearch
+    networks:
+      - ueba-network
+# ----------------------------------------
+  # 3. 🌐 웹 서비스 (Frontend & Backend)
+  # ----------------------------------------
+  ueba-backend:
+    image: python:3.10-slim
+    container_name: ueba-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/UEBA_DEV
+    working_dir: /UEBA_DEV/backend
+    command: bash -c "pip install fastapi uvicorn && uvicorn main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - ueba-network
+
+  ueba-frontend:
+    image: node:22-alpine
+    container_name: ueba-frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    networks:
+      - ueba-network
+
 networks:
-  ueba_shared_net:
-    external: true
-    name: ueba_ueba-network
+  ueba-network:
+    driver: bridge
