@@ -8,6 +8,7 @@ import json
 import pandas as pd
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from sqlalchemy import create_engine, text
 
 app = FastAPI()
 
@@ -21,10 +22,25 @@ app.add_middleware(
 LOG_FILE = "/UEBA_DEV/logs/ueba_engine.log"
 DATA_DIR = "/UEBA_DEV/data"
 MODE_FILE = os.path.join(DATA_DIR, "mode.txt")
+CONFIG_FILE = "/UEBA_DEV/conf/ueba_settings.json" # ⭐️ 추가됨
 
 # 초기 기동 시 모드 파일이 없으면 생성
 if not os.path.exists(MODE_FILE):
     with open(MODE_FILE, "w") as f: f.write("manual")
+
+# ==========================================
+# ⭐️ 누락되었던 DB 연결용 필수 함수 추가
+# ==========================================
+def load_config():
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f: 
+        return json.load(f)
+
+def get_db_engine(config):
+    conf = next((s for s in config.get("sources", []) if s.get("name") == "ueba_mariaDB"), None)
+    if not conf: return None
+    url = f"mysql+pymysql://{conf['user']}:{conf['password']}@{conf['host']}:{conf['port']}/{conf['database']}"
+    return create_engine(url, pool_pre_ping=True)
+# ==========================================
 
 @app.get("/api/logs")
 def get_logs(lines: int = 200):
@@ -35,14 +51,12 @@ def get_logs(lines: int = 200):
         return {"logs": result.stdout.split('\n')}
     except Exception as e: return {"logs": [f"❌ 로그 읽기 실패: {e}"]}
 
-# ⭐️ 모드 조회 API
 @app.get("/api/mode")
 def get_mode():
     try:
         with open(MODE_FILE, "r") as f: return {"mode": f.read().strip()}
     except: return {"mode": "manual"}
 
-# ⭐️ 모드 변경 API
 @app.post("/api/mode/{new_mode}")
 def set_mode(new_mode: str):
     if new_mode not in ["daemon", "manual"]:
@@ -71,9 +85,7 @@ def get_parser_xmls():
     PARSER_DIR = "/UEBA_DEV/conf/parsers"
     os.makedirs(PARSER_DIR, exist_ok=True)
     
-    # ⭐️ 1. 최우선: 이미 디스크에 생성된 XML 파일들이 있다면 무조건 먼저 읽어서 화면에 보냅니다!
     xml_files = glob.glob(os.path.join(PARSER_DIR, "*.xml"))
-    
     for file_path in xml_files:
         filename = os.path.basename(file_path)
         try:
@@ -82,13 +94,9 @@ def get_parser_xmls():
         except Exception as e:
             parsers[filename] = f"<Error>읽기 실패: {str(e)}</Error>"
             
-    # 읽어온 XML 파일이 하나라도 있다면 여기서 바로 프론트엔드로 전달합니다.
     if parsers:
         return {"parsers": parsers}
         
-    # -----------------------------------------------------------------
-    # 2. 만약 XML 파일이 하나도 없다면? 원본 로그를 찾아 새로 생성합니다.
-    # (이전의 .json만 찾던 버그를 고치고, 이름에 log가 들어간 모든 파일을 찾습니다)
     log_files = glob.glob("/UEBA_DEV/data/**/*log*", recursive=True) + \
                 glob.glob("/UEBA_DEV/data/**/*.json", recursive=True) + \
                 glob.glob("/UEBA_DEV/data/**/*.csv", recursive=True)
@@ -100,7 +108,7 @@ def get_parser_xmls():
         if filename.endswith('.parquet') or filename.endswith('.flag') or filename.endswith('.xml'):
             continue
             
-        xml_filename = f"{filename.split('.')[0]}.xml" # Auth_Logs.xml 처럼 이름 짓기
+        xml_filename = f"{filename.split('.')[0]}.xml" 
         xml_path = os.path.join(PARSER_DIR, xml_filename)
         xml_content = f'<?xml version="1.0" encoding="UTF-8"?>\n<LogParser name="{filename}">\n'
         
@@ -109,23 +117,22 @@ def get_parser_xmls():
                 first_line = f.readline().strip()
                 if not first_line: continue
                 
-                if first_line.startswith('{'): # JSON 형식
+                if first_line.startswith('{'): 
                     xml_content += '  <Format>JSON</Format>\n  <Fields>\n'
                     data = json.loads(first_line)
                     for k, v in data.items():
                         xml_content += f'    <Field name="{k}" type="{type(v).__name__}" />\n'
-                elif ',' in first_line: # CSV 형식
+                elif ',' in first_line: 
                     xml_content += '  <Format>CSV</Format>\n  <Fields>\n'
                     for h in first_line.split(','):
                         xml_content += f'    <Field name="{h.strip()}" type="string" />\n'
-                else: # 일반 텍스트/Syslog 형식
+                else: 
                     xml_content += '  <Format>TEXT</Format>\n  <Fields>\n'
                     for i, p in enumerate(first_line.split()[:5]):
                         xml_content += f'    <Field name="field_{i}" sample_value="{p[:10]}" type="string" />\n'
                         
             xml_content += '  </Fields>\n</LogParser>'
             
-            # 생성된 XML 저장
             with open(xml_path, 'w', encoding='utf-8') as xf:
                 xf.write(xml_content)
             parsers[xml_filename] = xml_content
@@ -139,69 +146,105 @@ def get_parser_xmls():
     return {"parsers": parsers}
 
 @app.get("/api/ml-metrics")
-def get_ml_metrics():
-    """ML 분석 완료된 파케이 파일을 읽어 학습/탐지 지표를 수치화합니다."""
-    files = glob.glob("/UEBA_DEV/data/intermediate/*_detect.parquet")
-    
-    total_analyzed = 0
-    high_risk_count = 0
-    
-    for f in files:
-        try:
-            df = pd.read_parquet(f)
-            total_analyzed += len(df)
-            
-            # 플러그인이 부여한 위험도 컬럼을 찾습니다 (없으면 임의로 상위 5%를 이상치로 간주)
-            if 'risk_score' in df.columns:
-                high_risk_count += len(df[df['risk_score'] >= 80])
-            elif 'anomaly_score' in df.columns:
-                high_risk_count += len(df[df['anomaly_score'] >= 80])
-            else:
-                # ML 컬럼을 찾지 못한 경우 시각화를 위해 가상의 5% 수치 적용
-                high_risk_count += int(len(df) * 0.05) 
-        except Exception:
-            pass
-            
-    # 엔진 상태 파일 확인
-    engine_mode = "manual"
-    if os.path.exists(MODE_FILE):
-        with open(MODE_FILE, "r") as f: engine_mode = f.read().strip()
-        
-    status_msg = "학습 및 추론 대기 중 💤"
-    if engine_mode == "daemon": status_msg = "실시간 스트리밍 학습 중 🔄"
-    elif total_analyzed > 0: status_msg = "배치(Batch) 분석 완료 ✅"
+async def get_ml_metrics():
+    try:
+        db_engine = get_db_engine(load_config())
+        if not db_engine:
+            raise Exception("DB 설정을 찾을 수 없습니다.")
 
-    return {
-        "total_analyzed": total_analyzed,
-        "high_risk_count": high_risk_count,
-        "anomaly_rate": round((high_risk_count / total_analyzed * 100), 1) if total_analyzed > 0 else 0.0,
-        "status": status_msg
-    }
+        with db_engine.connect() as conn:
+            # 1. 총 데이터 계산
+            total_res = conn.execute(text("SELECT SUM(processed_count) FROM sj_ueba_ingestion_history")).fetchone()
+            total_count = int(total_res[0]) if total_res and total_res[0] is not None else 0
+
+            # 2. 고위험군 카운트
+            count_res = conn.execute(text("SELECT COUNT(*) FROM sj_ueba_anomalies WHERE risk_score >= 70")).fetchone()
+            high_risk_count = int(count_res[0]) if count_res and count_res[0] is not None else 0
+
+            # 3. 고위험군 리스트
+            query = text("SELECT user, risk_score, anomaly_reason, timestamp FROM sj_ueba_anomalies WHERE risk_score >= 70 ORDER BY timestamp DESC LIMIT 5")
+            result = conn.execute(query).fetchall()
+            
+            detection_list = []
+            for row in result:
+                ts_str = str(row[3]) if row[3] else ""
+                time_only = ts_str.split(" ")[1][:8] if " " in ts_str else ts_str 
+
+                detection_list.append({
+                    "time": time_only,
+                    "user": str(row[0]),
+                    "risk_score": float(row[1]),
+                    "reason": str(row[2])
+                })
+
+            anomaly_rate = round((high_risk_count / total_count * 100), 2) if total_count > 0 else 0.0
+
+            return {
+                "total_analyzed": total_count,
+                "high_risk_count": high_risk_count,
+                "anomaly_rate": anomaly_rate,
+                "status": "실시간 스트리밍 학습 중",
+                "detection_list": detection_list
+            }
+            
+    except Exception as e:
+        print(f"❌ ML Metrics API Error: {e}") 
+        return {
+            "total_analyzed": 0, 
+            "high_risk_count": 0, 
+            "anomaly_rate": 0.0, 
+            "status": "에러 발생", 
+            "detection_list": [],
+            "error_detail": str(e)
+        }
 
 @app.post("/api/parsers/update-fields")
 async def update_parser_fields(request: Request):
     data = await request.json()
-    filename = data.get("filename") # 예: Auth_Logs.xml
-    fields = data.get("fields")     # [{'target': '...', 'source': '...'}, ...]
+    filename = data.get("filename") 
+    fields = data.get("fields") 
 
     PARSER_DIR = "/UEBA_DEV/conf/parsers"
     file_path = os.path.join(PARSER_DIR, filename)
 
     try:
-        # 1. XML 구조 생성
         root = ET.Element("parser", name=filename.replace('.xml', ''))
         for f in fields:
-            # UI에서 수정한 target, source 값을 속성으로 매핑
             ET.SubElement(root, "field", target=f['target'], source=f['source'])
         
-        # 2. 가독성 좋은 XML 문자열 생성 (Pretty Print)
         xml_str = ET.tostring(root, encoding='utf-8')
         pretty_xml = minidom.parseString(xml_str).toprettyxml(indent="  ")
         
-        # 3. 파일 쓰기
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(pretty_xml)
             
         return {"status": "success", "message": f"✅ {filename} 규칙이 물리 파일에 저장되었습니다."}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.get("/api/anomalies/all")
+async def get_all_anomalies(limit: int = 1000):
+    try:
+        db_engine = get_db_engine(load_config())
+        with db_engine.connect() as conn:
+            # 70점 이상인 모든 내역을 최신순으로 가져옴
+            query = text(f"SELECT user, risk_score, anomaly_reason, timestamp FROM sj_ueba_anomalies WHERE risk_score >= 70 ORDER BY timestamp DESC LIMIT {limit}")
+            result = conn.execute(query).fetchall()
+            
+            all_list = []
+            for row in result:
+                ts_str = str(row[3]) if row[3] else ""
+                time_only = ts_str.split(" ")[1][:8] if " " in ts_str else ts_str 
+
+                all_list.append({
+                    "time": time_only,
+                    "user": str(row[0]),
+                    "risk_score": float(row[1]),
+                    "reason": str(row[2])
+                })
+
+            return {"status": "success", "data": all_list}
+            
+    except Exception as e:
+        print(f"❌ 전체 이상행위 조회 API 에러: {e}") 
+        return {"status": "error", "data": []}

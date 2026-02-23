@@ -81,7 +81,7 @@ services:
     volumes:
       - ./:/UEBA_DEV
     working_dir: /UEBA_DEV/backend
-    command: bash -c "pip install fastapi uvicorn pandas pyarrow && uvicorn main:app --host 0.0.0.0 --port 8000"
+    command: bash -c "pip install fastapi uvicorn pandas pyarrow sqlalchemy pymysql && uvicorn main:app --host 0.0.0.0 --port 8000"
     networks:
       - ueba-network
 

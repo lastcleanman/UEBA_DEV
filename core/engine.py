@@ -9,6 +9,7 @@ import shutil
 from datetime import datetime
 from sqlalchemy import create_engine, text
 import pandas as pd
+import numpy as np
 
 if "/UEBA_DEV" not in sys.path: sys.path.insert(0, "/UEBA_DEV")
 
@@ -69,6 +70,72 @@ def execute_plugins(spark, df, plugin_list, step_name, global_config, source_nam
     return df
 
 # ==========================================
+# 🤖 AI 이상행위 핵심 분석 로직 (ML Intelligence)
+# ==========================================
+def analyze_behavior(spark, current_df, source_name, config): # ⭐️ 인자 4개 확인
+    try:
+        # Py4J 에러 회피를 위한 데이터 변환
+        rows = current_df.collect()
+        if not rows: return current_df
+        
+        data_list = [row.asDict() for row in rows]
+        df = pd.DataFrame(data_list)
+
+        current_hour = datetime.now().hour
+        is_night = 1 if 0 <= current_hour <= 5 else 0
+        
+        user_counts = df.groupby('user').size()
+        avg_batch_count = user_counts.mean()
+        
+        logger.info(f"🤖 [{source_name}] AI 지표 분석 중... (대상: {len(df)}건)")
+
+        def calculate_score(row):
+            score = 0
+            reasons = []
+            
+            # 1. 폭증 분석
+            user_count = user_counts.get(row['user'], 0)
+            if user_count > (avg_batch_count * 3):
+                score += 40
+                reasons.append(f"행위 폭증({user_count}건)")
+            
+            # 2. 민감 리소스 분석
+            res_val = str(row.get('resource', ''))
+            if any(ext in res_val for ext in ['.sql', 'admin', 'backup']):
+                score += 50
+                reasons.append("민감 경로 접근")
+                
+            if is_night:
+                score += 20
+                reasons.append("심야 활동")
+                
+            return pd.Series([score, ", ".join(reasons)])
+
+        df[['risk_score', 'anomaly_reason']] = df.apply(calculate_score, axis=1)
+        
+        # ⭐️ DB 저장 로직 (상단 카운트 연동 핵심)
+        db_engine = get_db_engine(config)
+        anomalies = df[df['risk_score'] >= 70].copy() # 70점 이상만 추출
+        
+        if not anomalies.empty and db_engine:
+            with db_engine.begin() as conn:
+                for _, row in anomalies.iterrows():
+                    conn.execute(text("""
+                        INSERT INTO sj_ueba_anomalies (user, risk_score, anomaly_reason, source_name)
+                        VALUES (:u, :s, :r, :src)
+                    """), {
+                        "u": row['user'], "s": row['risk_score'], 
+                        "r": row['anomaly_reason'], "src": source_name
+                    })
+            logger.warning(f"🚨 [Anomaly Detected & Saved] {len(anomalies)}건 기록됨 ({source_name})")
+
+        return spark.createDataFrame(df)
+
+    except Exception as e:
+        logger.error(f"❌ AI 분석 로직 실행 실패: {e}")
+        return current_df
+
+# ==========================================
 # 🚀 1. 수집 단계 (Input)
 # ==========================================
 def run_input(config):
@@ -92,11 +159,9 @@ def run_input(config):
             if raw_pandas_df is None or raw_pandas_df.dropna(axis=1, how='all').empty:
                 logger.info(f"⏩ [{source_name}] 신규 수집 데이터 없음.")
                 save_history(db_engine, source_name, 0, "SUCCESS", start_time=start_time)
-                # 이전 파일 삭제 (다음 단계가 옛날 데이터를 읽지 않도록 방지)
                 if os.path.exists(out_path): os.remove(out_path)
                 continue
                 
-            # 워터마크 갱신 및 파일 저장
             if watermark_col in raw_pandas_df.columns:
                 set_last_ts(source_name, str(raw_pandas_df[watermark_col].max()))
                 
@@ -119,9 +184,8 @@ def run_process(spark, config):
         in_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_input.parquet")
         out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_process.parquet")
         
-        # ⭐️ 수정된 부분: 데이터가 없으면 이유를 로그로 출력!
         if not os.path.exists(in_path):
-            logger.warning(f"⚠️ [{source_name}] 수집된 데이터가 없습니다. 먼저 '1. 데이터 수집(Input)'을 실행해주세요.")
+            logger.warning(f"⚠️ [{source_name}] 수집된 데이터가 없습니다.")
             continue
         
         try:
@@ -138,7 +202,7 @@ def run_process(spark, config):
         except Exception as e: logger.error(f"❌ [{source_name}] Process 에러: {e}")
 
 # ==========================================
-# 🤖 3. 분석 단계 (Detect: Rule + ML)
+# 🤖 3. 분석 단계 (Detect: Rule + ML Intelligence)
 # ==========================================
 def run_detect(spark, config):
     pipeline = config.get("pipeline", {})
@@ -149,16 +213,16 @@ def run_detect(spark, config):
         in_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_process.parquet")
         out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_detect.parquet")
         
-        # ⭐️ 수정된 부분: 데이터가 없으면 이유를 로그로 출력!
-        if not os.path.exists(in_path):
-            logger.warning(f"⚠️ [{source_name}] 정제된 데이터가 없습니다. 분석을 위해 이전 단계부터 실행해주세요.")
-            continue
+        if not os.path.exists(in_path): continue
         
         try:
             clean_df = spark.read.parquet(in_path)
             detected_df = execute_plugins(spark, clean_df, pipeline.get("detection", []), "Detection", config)
-            detected_df.write.mode("overwrite").parquet(out_path)
-            logger.info(f"✅ [{source_name}] 룰/ML 위협 분석 완료 (Detection -> Output 대기)")
+            
+            final_df = analyze_behavior(spark, detected_df, source_name, config)
+            
+            final_df.write.mode("overwrite").parquet(out_path)
+            logger.info(f"✅ [{source_name}] AI 위협 분석 완료")
         except Exception as e: logger.error(f"❌ [{source_name}] Detect 에러: {e}")
 
 # ==========================================
@@ -174,9 +238,8 @@ def run_output(spark, config):
         source_name = source.get('name')
         in_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_detect.parquet")
         
-        # ⭐️ 수정된 부분: 데이터가 없으면 이유를 로그로 출력!
         if not os.path.exists(in_path):
-            logger.warning(f"⚠️ [{source_name}] 적재할 분석 완료 데이터가 없습니다. 이전 단계를 먼저 실행해주세요.")
+            logger.warning(f"⚠️ [{source_name}] 적재할 데이터가 없습니다.")
             continue
         
         try:
@@ -201,7 +264,7 @@ def get_current_mode():
             with open(MODE_FILE, "r") as f:
                 return f.read().strip().lower()
     except: pass
-    return "manual" # 기본값은 수동 모드
+    return "manual"
 
 def main():
     config = load_config()
@@ -213,56 +276,41 @@ def main():
         while True:
             current_mode = get_current_mode()
             
-            # 모드가 변경되었을 때만 로그 출력
             if current_mode != last_mode:
                 logger.info(f"🔄 엔진 모드 변경 감지: [{current_mode.upper()}] 모드로 동작합니다.")
                 last_mode = current_mode
                 
-            # ----------------------------------------
-            # 🔄 1. 자동 데몬 모드 (30초 간격 무한루프)
-            # ----------------------------------------
             if current_mode == "daemon":
-                logger.info(f"\n--- 🚀 {datetime.now()} [자동 데몬] 수집 주기 시작 ---")
+                logger.info(f"\n--- 🚀 {datetime.now()} [자동 데몬] 분석 주기 시작 ---")
                 config = load_config()
                 run_input(config)
                 run_process(spark, config)
                 run_detect(spark, config)
                 run_output(spark, config)
                 
-                # 30초를 대기하되, 도중에 모드가 '수동'으로 바뀌면 즉시 탈출하도록 1초씩 쪼개서 대기
                 for _ in range(30):
                     if get_current_mode() != "daemon": break
                     time.sleep(1)
                     
-            # ----------------------------------------
-            # 🖐️ 2. 수동 대기 모드 (플래그 파일 감지)
-            # ----------------------------------------
             elif current_mode == "manual":
-                # ⭐️ 프론트엔드의 버튼 ID와 완벽하게 일치시켰습니다!
                 for step_name in ["all", "input", "rule", "ml", "elastic"]:
                     flag_file = f"/UEBA_DEV/data/trigger_{step_name}.flag"
-                    
                     if os.path.exists(flag_file):
-                        os.remove(flag_file) # 확인 즉시 삭제 (중복 방지)
-                        logger.info(f"\n--- 🚀 [수동 감지] {step_name.upper()} 단계 강제 실행 ---")
+                        os.remove(flag_file)
+                        logger.info(f"\n--- 🚀 [수동 감지] {step_name.upper()} 단계 실행 ---")
                         config = load_config()
                         
-                        # 1. 수집(Input) 버튼 누르면: 수집 + 정제(Process)를 세트로 실행!
                         if step_name in ["all", "input"]: 
                             run_input(config)
                             run_process(spark, config)
-                            
-                        # 2. 룰(Rule)이나 ML 버튼 누르면: 위협 분석(Detect) 실행!
                         if step_name in ["all", "rule", "ml"]: 
                             run_detect(spark, config)
-                            
-                        # 3. ES 적재(Load) 버튼 누르면: 최종 적재(Output) 실행!
                         if step_name in ["all", "elastic"]: 
-                            run_output(spark, config)
+                            run_output(config)
                         
-                        logger.info(f"✅ {step_name.upper()} 명령 처리 완료. 다시 대기합니다.")
+                        logger.info(f"✅ {step_name.upper()} 명령 처리 완료.")
                 
-                time.sleep(1) # 1초 간격으로 플래그만 체크 (부하 없음)
+                time.sleep(1)
 
     except KeyboardInterrupt: pass
     finally: spark.stop()
