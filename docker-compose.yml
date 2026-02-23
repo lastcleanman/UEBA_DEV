@@ -9,13 +9,19 @@ services:
     restart: always             
     user: root                  
     volumes:
-      - ./:/UEBA_DEV
+      - .:/UEBA_DEV
+      - ./data:/UEBA_DEV/data
+      - ./conf/parsers:/UEBA_DEV/conf/parsers
     working_dir: /UEBA_DEV
     environment:
       - TZ=Asia/Seoul
       - PYTHONPATH=/UEBA_DEV
+      - SPARK_HOME=/opt/spark  # Spark 경로 명시
+    ports:
+      - "8080:8080"  # Spark Master Web UI
+      - "4040:4040"  # ⭐️ 실시간 작업 모니터링용 (Spark UI)
     command: >
-      bash -c "python3 /UEBA_DEV/core/engine.py"
+      bash -c "pip install pandas pyarrow sqlalchemy pymysql elasticsearch && python3 /UEBA_DEV/core/engine.py"
     networks:
       - ueba-network
 

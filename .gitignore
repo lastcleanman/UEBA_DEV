@@ -7,3 +7,4 @@ data/intermediate/
 data/trigger_*.flag
 data/mode.txt
 __pycache__/
+postgres_data

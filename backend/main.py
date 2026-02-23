@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 import os
@@ -6,6 +6,8 @@ import threading
 import glob
 import json
 import pandas as pd
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 app = FastAPI()
 
@@ -175,3 +177,31 @@ def get_ml_metrics():
         "anomaly_rate": round((high_risk_count / total_analyzed * 100), 1) if total_analyzed > 0 else 0.0,
         "status": status_msg
     }
+
+@app.post("/api/parsers/update-fields")
+async def update_parser_fields(request: Request):
+    data = await request.json()
+    filename = data.get("filename") # 예: Auth_Logs.xml
+    fields = data.get("fields")     # [{'target': '...', 'source': '...'}, ...]
+
+    PARSER_DIR = "/UEBA_DEV/conf/parsers"
+    file_path = os.path.join(PARSER_DIR, filename)
+
+    try:
+        # 1. XML 구조 생성
+        root = ET.Element("parser", name=filename.replace('.xml', ''))
+        for f in fields:
+            # UI에서 수정한 target, source 값을 속성으로 매핑
+            ET.SubElement(root, "field", target=f['target'], source=f['source'])
+        
+        # 2. 가독성 좋은 XML 문자열 생성 (Pretty Print)
+        xml_str = ET.tostring(root, encoding='utf-8')
+        pretty_xml = minidom.parseString(xml_str).toprettyxml(indent="  ")
+        
+        # 3. 파일 쓰기
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(pretty_xml)
+            
+        return {"status": "success", "message": f"✅ {filename} 규칙이 물리 파일에 저장되었습니다."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
