@@ -1,0 +1,22 @@
+services:
+  ueba-engine-dev:
+    build: .                          # 현재 폴더의 Dockerfile로 빌드
+    image: ueba-engine:dev            # ⭐️ 기존과 구분되는 새로운 개발용 이미지
+    container_name: ueba-engine-dev   # ⭐️ 컨테이너 이름 분리
+    restart: always             
+    user: root                  
+    volumes:
+      - ./:/UEBA_DEV                  # ⭐️ 호스트의 UEBA_DEV를 컨테이너의 UEBA_DEV로 마운트!
+    working_dir: /UEBA_DEV
+    environment:
+      - TZ=Asia/Seoul
+      - PYTHONPATH=/UEBA_DEV          # ⭐️ 파이썬 라이브러리 인식 경로
+    command: >
+      bash -c "python3 /UEBA_DEV/core/engine.py"
+    networks:
+      - ueba_shared_net
+      
+networks:
+  ueba_shared_net:
+    external: true
+    name: ueba_ueba-network

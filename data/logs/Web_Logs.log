@@ -1,0 +1,10 @@
+{"timestamp": "2026-02-20 17:04:42", "user_id": "SJ_02016", "user": "윤지혜", "department": "클라우드인프라팀", "action": "view", "resource": "/hr/salary.pdf", "ip": "192.168.25.16"}
+{"timestamp": "2026-02-20 17:04:42", "user_id": "SJ_02181", "user": "홍건우", "department": "데이터사이언스팀", "action": "view", "resource": "/api/v1/data", "ip": "192.168.10.181"}
+{"timestamp": "2026-02-20 17:04:42", "user_id": "SJ_02796", "user": "유정숙", "department": "SNS운영팀", "action": "view", "resource": "/sales/report.xlsx", "ip": "192.168.25.46"}
+{"timestamp": "2026-02-20 17:04:42", "user_id": "SJ_02154", "user": "황경숙", "department": "클라우드플랫폼팀", "action": "download", "resource": "/api/v1/data", "ip": "192.168.23.154"}
+{"timestamp": "2026-02-20 17:04:42", "user_id": "SJ_00395", "user": "강채원", "department": "기술지원팀", "action": "view", "resource": "/hr/salary.pdf", "ip": "192.168.24.145"}
+{"timestamp": "2026-02-20 17:04:47", "user_id": "SJ_00520", "user": "안순옥", "department": "MS Azure팀", "action": "download", "resource": "/sales/report.xlsx", "ip": "192.168.29.20"}
+{"timestamp": "2026-02-20 17:04:47", "user_id": "SJ_02076", "user": "김윤서", "department": "AI모델팀", "action": "view", "resource": "/hr/salary.pdf", "ip": "192.168.25.76"}
+{"timestamp": "2026-02-20 17:04:47", "user_id": "SJ_00144", "user": "서정수", "department": "재무팀", "action": "view", "resource": "/api/v1/data", "ip": "192.168.13.144"}
+{"timestamp": "2026-02-20 17:04:47", "user_id": "SJ_01117", "user": "허옥자", "department": "퍼포먼스팀", "action": "view", "resource": "/api/v1/data", "ip": "192.168.26.117"}
+{"timestamp": "2026-02-20 17:04:47", "user_id": "SJ_01424", "user": "허지영", "department": "시장조사팀", "action": "view", "resource": "/sales/report.xlsx", "ip": "192.168.13.174"}
