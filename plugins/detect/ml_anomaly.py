@@ -6,7 +6,7 @@ from core.utils import get_logger
 
 logger = get_logger("Plugin-MLAnomaly")
 
-def execute(df, config=None):
+def execute(spark, df, source_name, config):
     try:
         logger.info("🤖 [Plugin] 머신러닝(ML) 기반 이상 행위 분석 시작...")
         

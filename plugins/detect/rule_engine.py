@@ -3,7 +3,7 @@ from core.utils import get_logger
 
 logger = get_logger("Plugin-RuleEngine")
 
-def execute(df, config=None):
+def execute(spark, df, source_name, config):
     try:
         logger.info("🕵️ [Plugin] 룰 기반 위협 분석(Rule Engine) 시작...")
         

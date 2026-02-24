@@ -64,9 +64,10 @@ def execute_plugins(spark, df, plugin_list, step_name, global_config, source_nam
         try:
             plugin = importlib.import_module(path)
             if hasattr(plugin, "execute"):
-                if step_name == "Process": df = plugin.execute(spark, df, source_name, global_config)
-                else: df = plugin.execute(df, global_config)
-        except Exception as e: logger.error(f"❌ [{step_name}] {path} 실패: {e}")
+                # ⭐️ 모든 플러그인에 4개의 인자를 일관되게 전달합니다.
+                df = plugin.execute(spark, df, source_name, global_config)
+        except Exception as e: 
+            logger.error(f"❌ [{step_name}] {path} 실패: {e}")
     return df
 
 # ==========================================
@@ -324,7 +325,7 @@ def main():
                         if step_name in ["all", "rule", "ml"]: 
                             run_detect(spark, config)
                         if step_name in ["all", "elastic"]: 
-                            run_output(config)
+                            run_output(spark, config)
                         
                         logger.info(f"✅ {step_name.upper()} 명령 처리 완료.")
                 

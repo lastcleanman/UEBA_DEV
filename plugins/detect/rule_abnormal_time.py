@@ -3,7 +3,7 @@ from core.utils import get_logger
 
 logger = get_logger("Plugin-AbnormalTime")
 
-def execute(df, config=None):
+def execute(spark, df, source_name, config):
     try:
         logger.info("🕒 [Plugin] 심야/주말 비정상 접근 분석 중...")
         

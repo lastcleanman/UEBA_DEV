@@ -3,7 +3,7 @@ from core.utils import get_logger
 
 logger = get_logger("Plugin-ElasticLoad")
 
-def execute(df, global_config):
+def execute(spark, df, source_name, global_config):
     try:
         count = df.count()
         if count == 0: return df

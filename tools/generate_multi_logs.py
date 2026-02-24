@@ -23,7 +23,7 @@ def load_users_from_db():
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             config = json.load(f)
-        
+
         # ueba_mariaDB 설정 가져오기
         db_conf = next((s for s in config.get("sources", []) if s.get("name") == "ueba_mariaDB"), None)
         if not db_conf:
@@ -33,7 +33,7 @@ def load_users_from_db():
         # DB_URL 자동 조합
         db_url = f"mysql+pymysql://{db_conf['user']}:{db_conf['password']}@{db_conf['host']}:{db_conf['port']}/{db_conf['database']}"
         engine = create_engine(db_url, pool_pre_ping=True)
-        
+
         logger.info(f"🔄 MariaDB({db_conf['host']})에서 사원 정보를 불러오는 중...")
         with engine.connect() as conn:
             query = text("""
@@ -46,12 +46,12 @@ def load_users_from_db():
                 WHERE e.employee_id IS NOT NULL AND e.name_kr IS NOT NULL
             """)
             result = conn.execute(query)
-            
+
             for idx, row in enumerate(result):
                 ip_subnet = (idx % 20) + 10
                 ip_host = (idx % 250) + 1
                 assigned_ip = f"192.168.{ip_subnet}.{ip_host}"
-                
+
                 USER_ROSTER.append({
                     "user_id": row.emp_id,       
                     "user": row.user_name,       
@@ -59,10 +59,10 @@ def load_users_from_db():
                     "ip": assigned_ip,
                     "device_id": f"WS-{row.emp_id}"
                 })
-                
+
         logger.info(f"✅ 총 {len(USER_ROSTER)}명의 사원 정보를 성공적으로 로드했습니다!")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ DB 연동 실패: {e}")
         return False
@@ -70,7 +70,7 @@ def load_users_from_db():
 def write_log(filename, data):
     os.makedirs(LOG_DIR, exist_ok=True)
     filepath = os.path.join(LOG_DIR, filename)
-    
+
     # ⭐️ 딕셔너리를 깨끗하게 JSON 한 줄로 저장
     with open(filepath, "a", encoding="utf-8") as f:
         json_line = json.dumps(data, ensure_ascii=False).strip()
@@ -78,40 +78,35 @@ def write_log(filename, data):
 
 def generate_logs(count=5):
     if not USER_ROSTER: return
-    now_str = datetime.now().isoformat()
-    
-    # ⭐️ [고도화] 특정 사용자 1명을 '공격자'로 임시 지정 (학습용 이상치 생성)
-    attacker = random.choice(USER_ROSTER)
+    # 1. Elasticsearch가 100% 인식하는 ISO8601 표준 포맷(예: 2026-02-23T09:10:00.123456)으로 변경
+    now_str = datetime.now().isoformat() 
 
-    for i in range(count):
-        # 10% 확률로 공격 시나리오 로그 생성
-        is_attack = random.random() < 0.1 
-        actor = attacker if is_attack else random.choice(USER_ROSTER)
-        
+    for _ in range(count):
+        actor = random.choice(USER_ROSTER)
+
         base_info = {
-            "@timestamp": now_str,
+            "@timestamp": now_str,  # 2. Kibana 표준 시간 필드명인 @timestamp 로 변경
             "user_id": actor["user_id"], 
             "user": actor["user"],       
             "department": actor["dept"]  
         }
 
-        # [1] 인증 로그: Brute Force 공격 (짧은 시간 대량 실패)
-        if is_attack:
-            for _ in range(5): # 한 번에 5번의 실패 로그를 쏟아냄
-                auth_data = {**base_info, "action": "fail", "ip": "10.99.99.99", "reason": "Invalid Password"}
-                write_log("Auth_Logs.log", auth_data)
-        else:
-            auth_data = {**base_info, "action": random.choice(["login", "logout"]), "ip": actor["ip"]}
-            write_log("Auth_Logs.log", auth_data)
+        # 엔진이 수집할 수 있도록 파일명 규격(Auth_Logs.log 등)으로 맞춰서 저장합니다.
+        # [1] 인증 로그
+        auth_data = {**base_info, "action": random.choices(["login", "logout", "fail"], weights=[70, 20, 10])[0], "ip": actor["ip"]}
+        write_log("Auth_Logs.log", auth_data)
 
-        # [2] 웹 서버 로그: 대량 데이터 유출 (비정상 리소스 접근)
-        web_action = "sensitive_export" if is_attack else "view"
-        web_res = "/admin/db_backup.sql" if is_attack else "/main/index.html"
-        web_data = {**base_info, "action": web_action, "resource": web_res, "ip": actor["ip"]}
+        # [2] 웹 서버 로그
+        web_data = {**base_info, "action": random.choices(["view", "download", "upload"], weights=[80, 15, 5])[0], "resource": random.choice(["/api/v1/data", "/hr/salary.pdf", "/sales/report.xlsx"]), "ip": actor["ip"]}
         write_log("Web_Logs.log", web_data)
 
-    if is_attack:
-        logger.warning(f"🔥 [Anomaly Alert] {attacker['user']}에 의한 인위적 이상 징후 생성됨!")
+        # [3] 엔드포인트 로그
+        endpoint_data = {**base_info, "action": random.choices(["process_start", "file_copy", "USB_inserted"], weights=[80, 15, 5])[0], "device_id": actor["device_id"]}
+        write_log("Endpoint_Logs.log", endpoint_data)
+
+        # [4] 방화벽 정책 로그
+        fw_data = {**base_info, "src_ip": actor["ip"], "dst_ip": f"10.0.{random.randint(1,5)}.{random.randint(1,255)}", "action": random.choices(["allow", "deny"], weights=[90, 10])[0], "port": random.choice([80, 443, 22])}
+        write_log("Firewall_Logs.log", fw_data)
 
 def main():
     logger.info("🚀 고급 JSON UEBA Fake Log 생성기 시작...")
