@@ -11,6 +11,9 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 import numpy as np
 
+# ⭐️ 파서 자동 학습 모듈 임포트
+from plugins.detect import auto_generate_parsers
+
 if "/UEBA_DEV" not in sys.path: sys.path.insert(0, "/UEBA_DEV")
 
 from core.utils import get_spark_session, get_logger
@@ -19,7 +22,7 @@ logger = get_logger("CoreEngine")
 CONFIG_FILE = "/UEBA_DEV/conf/ueba_settings.json"
 WATERMARK_FILE = "/UEBA_DEV/conf/watermark.json"
 
-# ⭐️ 단계별 독립 실행을 위한 중간 데이터 저장소
+# 단계별 독립 실행을 위한 중간 데이터 저장소
 INTERMEDIATE_PATH = "/UEBA_DEV/data/intermediate"
 os.makedirs(INTERMEDIATE_PATH, exist_ok=True)
 
@@ -52,19 +55,24 @@ def get_last_ts(source_name):
 
 def set_last_ts(source_name, ts):
     try:
+        # 폴더 자동 생성 방어 로직 추가
+        os.makedirs(os.path.dirname(WATERMARK_FILE), exist_ok=True)
         data = {}
         if os.path.exists(WATERMARK_FILE):
-            with open(WATERMARK_FILE, "r") as f: data = json.load(f)
+            with open(WATERMARK_FILE, "r") as f: 
+                try: data = json.load(f)
+                except json.JSONDecodeError: data = {}
         data[source_name] = str(ts)
-        with open(WATERMARK_FILE, "w") as f: json.dump(data, f)
-    except: pass
+        with open(WATERMARK_FILE, "w") as f: json.dump(data, f, indent=4)
+    except Exception as e:
+        logger.warning(f"⚠️ 워터마크 저장 실패: {e}")
 
 def execute_plugins(spark, df, plugin_list, step_name, global_config, source_name=None):
     for path in plugin_list:
         try:
             plugin = importlib.import_module(path)
             if hasattr(plugin, "execute"):
-                # ⭐️ 모든 플러그인에 4개의 인자를 일관되게 전달합니다.
+                # 모든 플러그인에 4개의 인자를 일관되게 전달합니다.
                 df = plugin.execute(spark, df, source_name, global_config)
         except Exception as e: 
             logger.error(f"❌ [{step_name}] {path} 실패: {e}")
@@ -73,9 +81,8 @@ def execute_plugins(spark, df, plugin_list, step_name, global_config, source_nam
 # ==========================================
 # 🤖 AI 이상행위 핵심 분석 로직 (ML Intelligence)
 # ==========================================
-def analyze_behavior(spark, current_df, source_name, config): # ⭐️ 인자 4개 확인
+def analyze_behavior(spark, current_df, source_name, config): 
     try:
-        # Py4J 에러 회피를 위한 데이터 변환
         rows = current_df.collect()
         if not rows: return current_df
         
@@ -114,7 +121,7 @@ def analyze_behavior(spark, current_df, source_name, config): # ⭐️ 인자 4�
 
         df[['risk_score', 'anomaly_reason']] = df.apply(calculate_score, axis=1)
         
-        # ⭐️ DB 저장 로직 (상단 카운트 연동 핵심)
+        # DB 저장 로직
         db_engine = get_db_engine(config)
         anomalies = df[df['risk_score'] >= 70].copy() # 70점 이상만 추출
         
@@ -130,7 +137,13 @@ def analyze_behavior(spark, current_df, source_name, config): # ⭐️ 인자 4�
                     })
             logger.warning(f"🚨 [Anomaly Detected & Saved] {len(anomalies)}건 기록됨 ({source_name})")
 
-        return spark.createDataFrame(df)
+        # ⭐️ [핵심 추가] Pandas -> Spark 로 돌아가기 전 결측치 및 타입 완벽 정리
+        df = df.fillna("").astype(str)
+        df = df.replace({'nan': '', 'None': '', '<NA>': ''})
+        
+        # DataFrame 대신 dict_list로 변환하여 Spark에 넣으면 스키마 에러를 100% 방지할 수 있습니다.
+        dict_list = df.to_dict(orient='records')
+        return spark.createDataFrame(dict_list) if dict_list else current_df
 
     except Exception as e:
         logger.error(f"❌ AI 분석 로직 실행 실패: {e}")
@@ -158,22 +171,17 @@ def run_input(config):
                 
             raw_pandas_df = input_plugin.fetch_data(source, config, last_updated=last_ts)
             
-            # ⭐️ 데이터가 0건일 때 이전 주기의 찌꺼기 파일(Ghost Data) 강제 삭제
             if raw_pandas_df is None or raw_pandas_df.dropna(axis=1, how='all').empty:
                 logger.info(f"⏩ [{source_name}] 신규 수집 데이터 없음 (마지막 수집: {last_ts})")
                 save_history(db_engine, source_name, 0, "SUCCESS", start_time=start_time)
                 
-                # 삭제 로직 추가: input, process, detect 임시 파일을 모두 날립니다.
                 for suffix in ["_input.parquet", "_process.parquet", "_detect.parquet"]:
                     ghost_file = os.path.join(INTERMEDIATE_PATH, f"{source_name}{suffix}")
                     if os.path.exists(ghost_file):
-                        if os.path.isdir(ghost_file): 
-                            shutil.rmtree(ghost_file) # Spark가 만든 폴더형 parquet 삭제
-                        else: 
-                            os.remove(ghost_file)     # Pandas가 만든 단일 파일 삭제
+                        if os.path.isdir(ghost_file): shutil.rmtree(ghost_file)
+                        else: os.remove(ghost_file)
                 continue
                 
-            # ... (이하 워터마크 자동 인식 및 저장 로직은 기존과 동일) ...
             if watermark_col not in raw_pandas_df.columns and '@timestamp' in raw_pandas_df.columns:
                 watermark_col = '@timestamp'
 
@@ -204,12 +212,18 @@ def run_process(spark, config):
         out_path = os.path.join(INTERMEDIATE_PATH, f"{source_name}_process.parquet")
         
         if not os.path.exists(in_path):
-            logger.warning(f"⚠️ [{source_name}] 수집된 데이터가 없습니다.")
             continue
         
         try:
             raw_pandas_df = pd.read_parquet(in_path)
-            dict_list = raw_pandas_df.replace({pd.NA: None}).where(pd.notnull(raw_pandas_df), None).to_dict(orient='records')
+            
+            # ⭐️ [핵심 수정] Spark 스키마 추론 에러(CANNOT_DETERMINE_TYPE) 완벽 방어
+            # 결측치를 모두 빈 문자열('')로 채우고 데이터 타입을 문자열(str)로 강제 고정합니다.
+            raw_pandas_df = raw_pandas_df.fillna("").astype(str)
+            # pandas 변환 과정에서 생길 수 있는 문자열 쓰레기값 정리
+            raw_pandas_df = raw_pandas_df.replace({'nan': '', 'None': '', '<NA>': ''})
+            
+            dict_list = raw_pandas_df.to_dict(orient='records')
             if not dict_list: continue
 
             spark_df = spark.createDataFrame(dict_list)
@@ -218,7 +232,8 @@ def run_process(spark, config):
             if clean_df.count() > 0:
                 clean_df.write.mode("overwrite").parquet(out_path)
                 logger.info(f"✅ [{source_name}] 데이터 정제 완료 (Process -> Detection 대기)")
-        except Exception as e: logger.error(f"❌ [{source_name}] Process 에러: {e}")
+        except Exception as e: 
+            logger.error(f"❌ [{source_name}] Process 에러: {e}")
 
 # ==========================================
 # 🤖 3. 분석 단계 (Detect: Rule + ML Intelligence)
@@ -236,7 +251,7 @@ def run_detect(spark, config):
         
         try:
             clean_df = spark.read.parquet(in_path)
-            detected_df = execute_plugins(spark, clean_df, pipeline.get("detection", []), "Detection", config)
+            detected_df = execute_plugins(spark, clean_df, pipeline.get("detection", []), "Detection", config, source_name)
             
             final_df = analyze_behavior(spark, detected_df, source_name, config)
             
@@ -263,7 +278,7 @@ def run_output(spark, config):
         
         try:
             detected_df = spark.read.parquet(in_path)
-            execute_plugins(spark, detected_df, pipeline.get("output", []), "Output", config)
+            execute_plugins(spark, detected_df, pipeline.get("output", []), "Output", config, source_name)
             
             count = detected_df.count()
             save_history(db_engine, source_name, count, "SUCCESS", start_time=start_time)
@@ -301,6 +316,13 @@ def main():
                 
             if current_mode == "daemon":
                 logger.info(f"\n--- 🚀 {datetime.now()} [자동 데몬] 분석 주기 시작 ---")
+                
+                # ⭐️ [핵심 추가] 수집(Input) 직전에 AI 파서 학습 스크립트를 구동하여 변화된 스키마를 업데이트합니다.
+                try:
+                    auto_generate_parsers.run_learning_parser()
+                except Exception as e:
+                    logger.warning(f"⚠️ 파서 스키마 학습 중 오류 발생 (무시하고 수집 진행): {e}")
+
                 config = load_config()
                 run_input(config)
                 run_process(spark, config)
@@ -319,9 +341,15 @@ def main():
                         logger.info(f"\n--- 🚀 [수동 감지] {step_name.upper()} 단계 실행 ---")
                         config = load_config()
                         
-                        if step_name in ["all", "input"]: 
+                        # ⭐️ [핵심 추가] 수동 모드에서도 수집 단계 실행 시 스키마를 업데이트합니다.
+                        if step_name in ["all", "input"]:
+                            try:
+                                auto_generate_parsers.run_learning_parser()
+                            except Exception as e:
+                                logger.warning(f"⚠️ 파서 스키마 학습 중 오류 발생: {e}")
                             run_input(config)
                             run_process(spark, config)
+                            
                         if step_name in ["all", "rule", "ml"]: 
                             run_detect(spark, config)
                         if step_name in ["all", "elastic"]: 

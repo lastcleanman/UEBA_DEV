@@ -1,9 +1,20 @@
 <?xml version="1.0" ?>
-<parser name="Endpoint_Logs">
-    <field target="user_id" source="user_id"/>
-    <field target="user_id" source="user"/>
-    <field target="department" source="department"/>
-    <field target="action" source="action"/>
-    <field target="device_id" source="device_id"/>
-    <field target="emp_name" source="mapped_name"/>
+<parser format="delimited" delimiter="|">
+    <fields>
+        <field index="0" target="log_type"/>
+        <field index="1" target="device_id"/>
+        <field index="2" target="@timestamp"/>
+        <field index="3" target="mgmt_ip"/>
+        <field index="4" target="version"/>
+        <field index="5" target="gw_count"/>
+        <field index="6" target="gw_status"/>
+        <field index="7" target="link_status"/>
+        <field index="8" target="cpu"/>
+        <field index="9" target="select_cpu"/>
+        <field index="10" target="avg_cpu"/>
+        <field index="11" target="temp"/>
+        <field index="12" target="mem"/>
+        <field index="13" target="disk"/>
+        <field index="14" target="user_defined"/>
+    </fields>
 </parser>

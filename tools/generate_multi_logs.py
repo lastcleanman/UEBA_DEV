@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from sqlalchemy import create_engine, text
 
-# ⭐️ 새로운 독립 환경 경로 추가 (코어 로거 사용)
+# 독립 환경 경로 추가
 if "/UEBA_DEV" not in sys.path:
     sys.path.insert(0, "/UEBA_DEV")
 
@@ -23,99 +23,115 @@ def load_users_from_db():
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             config = json.load(f)
-
-        # ueba_mariaDB 설정 가져오기
+            
         db_conf = next((s for s in config.get("sources", []) if s.get("name") == "ueba_mariaDB"), None)
         if not db_conf:
             logger.error("❌ 설정 파일에 'ueba_mariaDB' 정보가 없습니다.")
             return False
 
-        # DB_URL 자동 조합
         db_url = f"mysql+pymysql://{db_conf['user']}:{db_conf['password']}@{db_conf['host']}:{db_conf['port']}/{db_conf['database']}"
         engine = create_engine(db_url, pool_pre_ping=True)
 
         logger.info(f"🔄 MariaDB({db_conf['host']})에서 사원 정보를 불러오는 중...")
         with engine.connect() as conn:
-            query = text("""
-                SELECT 
-                    e.employee_id AS emp_id,
-                    e.name_kr AS user_name,
-                    COALESCE(d.department_name, 'Unknown') AS dept_name
-                FROM sj_ueba_employees e
-                LEFT JOIN sj_ueba_departments d ON e.department_id = d.department_id
-                WHERE e.employee_id IS NOT NULL AND e.name_kr IS NOT NULL
-            """)
+            query = text("SELECT e.employee_id AS emp_id, e.name_kr AS user_name FROM sj_ueba_employees e WHERE e.employee_id IS NOT NULL")
             result = conn.execute(query)
-
-            for idx, row in enumerate(result):
-                ip_subnet = (idx % 20) + 10
-                ip_host = (idx % 250) + 1
-                assigned_ip = f"192.168.{ip_subnet}.{ip_host}"
-
-                USER_ROSTER.append({
-                    "user_id": row.emp_id,       
-                    "user": row.user_name,       
-                    "dept": row.dept_name,       
-                    "ip": assigned_ip,
-                    "device_id": f"WS-{row.emp_id}"
-                })
-
-        logger.info(f"✅ 총 {len(USER_ROSTER)}명의 사원 정보를 성공적으로 로드했습니다!")
+            for row in result:
+                USER_ROSTER.append({"user_id": row.emp_id, "user": row.user_name})
+                
+        logger.info(f"✅ 총 {len(USER_ROSTER)}명의 사원 정보를 로드했습니다!")
         return True
-
     except Exception as e:
         logger.error(f"❌ DB 연동 실패: {e}")
         return False
 
-def write_log(filename, data):
+def write_waf_log(filename, log_line):
     os.makedirs(LOG_DIR, exist_ok=True)
     filepath = os.path.join(LOG_DIR, filename)
-
-    # ⭐️ 딕셔너리를 깨끗하게 JSON 한 줄로 저장
+    # AIWAF 규격은 JSON이 아닌 평문(String) + 구분자(|) 형태입니다.
     with open(filepath, "a", encoding="utf-8") as f:
-        json_line = json.dumps(data, ensure_ascii=False).strip()
-        f.write(json_line + "\n")
+        f.write(log_line + "\n")
 
-def generate_logs(count=5):
+def generate_logs(count=2):
     if not USER_ROSTER: return
-    # 1. Elasticsearch가 100% 인식하는 ISO8601 표준 포맷(예: 2026-02-23T09:10:00.123456)으로 변경
-    now_str = datetime.now().isoformat() 
+    
+    # [공통 필드] AIWAF v5.0.2 규격 (YYYY-MM-DD HH:MM:SS)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    mgmt_ip = "10.0.2.115"
+    version = "v5.0.2"
+    sep = "|" # 항목 구분자
 
     for _ in range(count):
         actor = random.choice(USER_ROSTER)
+        client_ip = f"192.168.10.{random.randint(1, 254)}"
+        is_attack = random.random() < 0.1
 
-        base_info = {
-            "@timestamp": now_str,  # 2. Kibana 표준 시간 필드명인 @timestamp 로 변경
-            "user_id": actor["user_id"], 
-            "user": actor["user"],       
-            "department": actor["dept"]  
-        }
+        # -----------------------------------------------------------------
+        # 1. 탐지 로그 (DETECT) -> 엔진의 Web_Logs와 매핑
+        # -----------------------------------------------------------------
+        # 규격: 로그유형|식별ID|시간|식별IP|버전|C_IP|C_PORT|S_IP|S_PORT|도메인|룰이름|위험도|조치|요청데이터|탐지코드|탐지유형|탐지근거|프로토콜|호스트|경로|요청길이|OriginIP|국가|국가(Origin)|사용자정의
+        detect_fields = [
+            "DETECT", "WAF", now_str, mgmt_ip, version,
+            client_ip, str(random.randint(10000, 65535)), "10.0.2.245", "80", "monitorapp.com",
+            "TEST SQL Injection" if is_attack else "XSS Attack",
+            "높음" if is_attack else "중간",
+            "차단" if is_attack else "탐지",
+            "[Empty value]", "1", "SQL 인젝션", "[query/payload monitorapp]", "http", "monitorapp.com", "/?monitorapp=monitorapp",
+            "1536", "없음", "[Empty value]", "[Empty value]",
+            f"USER_ID={actor['user_id']} USER_NAME={actor['user']}" # 임의설정값에 사용자 정보 매핑
+        ]
+        write_waf_log("Web_Logs.log", sep.join(detect_fields))
 
-        # 엔진이 수집할 수 있도록 파일명 규격(Auth_Logs.log 등)으로 맞춰서 저장합니다.
-        # [1] 인증 로그
-        auth_data = {**base_info, "action": random.choices(["login", "logout", "fail"], weights=[70, 20, 10])[0], "ip": actor["ip"]}
-        write_log("Auth_Logs.log", auth_data)
+        # -----------------------------------------------------------------
+        # 2. 감사 로그 (AUDIT) -> 엔진의 Auth_Logs와 매핑
+        # -----------------------------------------------------------------
+        # 규격: 로그유형|식별ID|시간|식별IP|버전|C_IP|아이디|감사유형|감사데이터|사용자정의
+        audit_fields = [
+            "AUDIT", "WAF", now_str, mgmt_ip, version,
+            client_ip, actor['user'],
+            "정책 적용" if is_attack else "로그인",
+            f"사용자 {actor['user']} 작업 수행",
+            f"USER_ID={actor['user_id']}"
+        ]
+        write_waf_log("Auth_Logs.log", sep.join(audit_fields))
 
-        # [2] 웹 서버 로그
-        web_data = {**base_info, "action": random.choices(["view", "download", "upload"], weights=[80, 15, 5])[0], "resource": random.choice(["/api/v1/data", "/hr/salary.pdf", "/sales/report.xlsx"]), "ip": actor["ip"]}
-        write_log("Web_Logs.log", web_data)
+        # -----------------------------------------------------------------
+        # 3. 트래픽 로그 (TRAFFIC) -> 엔진의 Firewall_Logs와 매핑
+        # -----------------------------------------------------------------
+        # 규격: 로그유형|식별ID|시간|식별IP|버전|도메인|BPS(전체)|BPS(HTTP)|...|사용자정의
+        traffic_fields = [
+            "TRAFFIC", "WAF", now_str, mgmt_ip, version,
+            "Etc.", "10312694.4", "10312694.4", "[Empty value]", 
+            "42.3", "42.3", "[Empty value]", "7.8", "[Empty value]", "7.8", 
+            "19", "0", "19", "1", "0", "1", "0", "29",
+            "TRAFFIC_STAT=OK"
+        ]
+        write_waf_log("Firewall_Logs.log", sep.join(traffic_fields))
 
-        # [3] 엔드포인트 로그
-        endpoint_data = {**base_info, "action": random.choices(["process_start", "file_copy", "USB_inserted"], weights=[80, 15, 5])[0], "device_id": actor["device_id"]}
-        write_log("Endpoint_Logs.log", endpoint_data)
+        # -----------------------------------------------------------------
+        # 4. 시스템 로그 (SYSTEM) -> 엔진의 Endpoint_Logs와 매핑
+        # -----------------------------------------------------------------
+        # 규격: 로그유형|식별ID|시간|식별IP|버전|GW개수|GW상태|링크상태|CPU|SelectCPU|평균CPU|온도|메모리|디스크|사용자정의
+        system_fields = [
+            "SYSTEM", "WAF", now_str, mgmt_ip, version,
+            "6", "정상", "eth0(UP,1000,full)",
+            str(random.randint(10, 50)), str(random.randint(10, 50)), str(random.randint(10, 50)),
+            "40", str(random.randint(30, 70)), str(random.randint(20, 60)),
+            "SYS_STAT=OK"
+        ]
+        write_waf_log("Endpoint_Logs.log", sep.join(system_fields))
 
-        # [4] 방화벽 정책 로그
-        fw_data = {**base_info, "src_ip": actor["ip"], "dst_ip": f"10.0.{random.randint(1,5)}.{random.randint(1,255)}", "action": random.choices(["allow", "deny"], weights=[90, 10])[0], "port": random.choice([80, 443, 22])}
-        write_log("Firewall_Logs.log", fw_data)
+    if is_attack:
+        logger.warning(f"🔥 [Anomaly Alert] {actor['user']}에 의한 이상 징후(DETECT) 생성됨!")
 
 def main():
-    logger.info("🚀 고급 JSON UEBA Fake Log 생성기 시작...")
+    logger.info("🚀 AIWAF v5.0.2 규격 (구분자 포맷) 로그 생성기 시작...")
     if load_users_from_db():
         try:
             while True:
-                generate_logs(5)
+                generate_logs(2)
                 logger.info("-" * 70)
-                time.sleep(5)
+                time.sleep(10) # AIWAF 권장 전송 주기 10초
         except KeyboardInterrupt:
             logger.info("\n🛑 생성기를 종료합니다.")
     else:

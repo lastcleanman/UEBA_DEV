@@ -1,9 +1,29 @@
 <?xml version="1.0" ?>
-<parser name="Firewall_Logs">
-  <field target="user_id" source="user_id"/>
-  <field target="user_id" source="user"/>
-  <field target="department" source="department"/>
-  <field target="src_ip" source="src_ip"/>
-  <field target="action" source="action"/>
-  <field target="emp_name" source="mapped_name"/>
+<parser format="delimited" delimiter="|">
+    <fields>
+        <field index="0" target="log_type"/>
+        <field index="1" target="device_id"/>
+        <field index="2" target="@timestamp"/>
+        <field index="3" target="mgmt_ip"/>
+        <field index="4" target="version"/>
+        <field index="5" target="domain"/>
+        <field index="6" target="bps_total"/>
+        <field index="7" target="bps_http"/>
+        <field index="8" target="bps_https"/>
+        <field index="9" target="tps_total"/>
+        <field index="10" target="tps_http"/>
+        <field index="11" target="tps_https"/>
+        <field index="12" target="cps_http"/>
+        <field index="13" target="cps_https"/>
+        <field index="14" target="cps_total"/>
+        <field index="15" target="open_conn_http"/>
+        <field index="16" target="open_conn_https"/>
+        <field index="17" target="open_conn_total"/>
+        <field index="18" target="visitors"/>
+        <field index="19" target="visitors_origin"/>
+        <field index="20" target="attackers"/>
+        <field index="21" target="attackers_origin"/>
+        <field index="22" target="attack_count"/>
+        <field index="23" target="user_defined"/>
+    </fields>
 </parser>

@@ -3,3 +3,4 @@ pymysql
 psycopg2-binary
 pandas
 pyarrow
+elasticsearch<9.0.0
