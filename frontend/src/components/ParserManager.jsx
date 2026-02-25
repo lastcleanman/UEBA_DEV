@@ -61,7 +61,7 @@ export default function ParserManager() {
       setExtraRows(prev => ({ ...prev, [filename]: [] }));
       setPendingDelete(prev => ({ ...prev, [filename]: [] }));
       fetchParsers();
-    } catch (e) { alert("저장 실패"); }
+    } catch { alert("저장 실패"); }
   };
 
   // ⭐️ XML 문자열에서 목록에 보여줄 메타데이터(타입, 장비명 등) 추출 함수
