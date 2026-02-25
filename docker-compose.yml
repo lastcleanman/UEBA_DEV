@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   # 1. IAM 및 자산 정보 저장용 (PostgreSQL)
   ueba-postgres:
