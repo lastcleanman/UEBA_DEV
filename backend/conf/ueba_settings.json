@@ -3,16 +3,14 @@
         "es_host": "ueba-elasticsearch",
         "es_port": "9200",
         "es_index": "ueba-alerts-v0.1",
-        "base_dir": "/UEBA_DEV",
+        "base_dir": "/UEBA_DEV/backend",
         "license_tier": "enterprise"
     },
     "pipeline": {
-        "input": ["plugins.input.data_reader"],
+        "input": ["backend.plugins.input.data_reader"],
         "process": [],
         "detection": [],
-        "output": [
-        "plugins.output.save_csv"  
-        ]
+        "output": []
     },
     "sources": [
         {
@@ -31,7 +29,7 @@
         {
             "name": "ueba_mariaDB",
             "type": "mariadb",
-            "enabled": false,
+            "enabled": true,
             "host": "192.168.0.131",
             "port": "13306",
             "user": "ueba_user",
@@ -44,22 +42,22 @@
         {
             "name": "Auth_Logs",
             "type": "file",
-            "path": "/UEBA_DEV/data/logs/Auth_Logs*.log"
+            "path": "/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log"
         },
         {
             "name": "Web_Logs",
             "type": "file",
-            "path": "/UEBA_DEV/data/logs/Web_Logs*.log"
+            "path": "/UEBA_DEV/backend/data/input/logs/Web_Logs*.log"
         },
         {
             "name": "Firewall_Logs",
             "type": "file",
-            "path": "/UEBA_DEV/data/logs/Firewall_Logs*.log"
+            "path": "/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log"
         },
         {
             "name": "Endpoint_Logs",
             "type": "file",
-            "path": "/UEBA_DEV/data/logs/Endpoint_Logs*.log"
+            "path": "/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log"
         }
     ]
 }

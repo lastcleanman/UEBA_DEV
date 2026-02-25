@@ -5,13 +5,16 @@ import random
 import time
 from datetime import datetime
 from sqlalchemy import create_engine, text
+
 if "/UEBA_DEV" not in sys.path:
     sys.path.insert(0, "/UEBA_DEV")
 
 from backend.core.utils import get_logger
 
 logger = get_logger("MultiLogGenerator")
-LOG_DIR = "/UEBA_DEV/backend/data/logs/"
+
+# ⭐️ 수정: /data/input/logs/ 경로로 변경
+LOG_DIR = "/UEBA_DEV/backend/data/input/logs/"
 CONFIG_FILE = "/UEBA_DEV/backend/conf/ueba_settings.json"
 
 USER_ROSTER = []
@@ -54,7 +57,7 @@ def generate_logs(count=2):
     if not USER_ROSTER: return
     
     # [공통 필드] AIWAF v5.0.2 규격 (YYYY-MM-DD HH:MM:SS)
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
     mgmt_ip = "10.0.2.115"
     version = "v5.0.2"
     sep = "|" # 항목 구분자

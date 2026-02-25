@@ -6,6 +6,7 @@ BACKEND_DIR = os.path.dirname(CORE_DIR)
 
 # 2. 주요 폴더(Directory) 경로 동적 맵핑 (모두 BACKEND_DIR 기준)
 DATA_DIR = os.path.join(BACKEND_DIR, "data")
+INPUT_DIR = os.path.join(DATA_DIR, "input")
 LOG_DIR = os.path.join(DATA_DIR, "logs")
 INTERMEDIATE_PATH = os.path.join(DATA_DIR, "intermediate")
 CONF_DIR = os.path.join(BACKEND_DIR, "conf")

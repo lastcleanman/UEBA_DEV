@@ -76,6 +76,8 @@ services:
       - "4040:4040"
     volumes:
       - ./:/UEBA_DEV
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       - ueba-spark
     networks:

@@ -1,38 +1,33 @@
 from pyspark.sql.functions import col, when, lit
 from backend.core.utils import get_logger
 
-logger = get_logger("Plugin-RuleEngine")
+logger = get_logger("Plugin-Detect")
 
-def execute(spark, df, source_name, config):
+def execute(spark, df, global_config):
+    logger.info(f"🚨 [Step 3] 룰 기반 위협 탐지(Rule Engine) 시작 (분석 대상: {df.count()}건)")
+    
     try:
-        logger.info("🕵️ [Plugin] 룰 기반 위협 분석(Rule Engine) 시작...")
+        # 1. 위협 탐지 룰 적용: 웹 탐지(DETECT) 이벤트가 발생한 경우 위험도 80점 부여
+        df_scored = df.withColumn(
+            "risk_score",
+            when(col("event_type") == "DETECT", lit(80)).otherwise(lit(0))
+        ).withColumn(
+            "threat_name",
+            when(col("event_type") == "DETECT", lit("웹 공격 (WAF 차단/탐지)")).otherwise(lit("Normal"))
+        )
         
-        # 기본 컬럼이 없다면 생성
-        if "risk_score" not in df.columns:
-            df = df.withColumn("risk_score", lit(0.0))
-        if "alert_reason" not in df.columns:
-            df = df.withColumn("alert_reason", lit(""))
-
-        # ---------------------------------------------------------
-        # [탐지 룰셋 1] 로그인 실패(LOGIN_FAILED) 탐지
-        # ---------------------------------------------------------
-        if "action" in df.columns:
-            df = df.withColumn(
-                "risk_score",
-                when(col("action").rlike("(?i)fail|error|deny|block"), col("risk_score") + 30.0)
-                .otherwise(col("risk_score"))
-            )
-            df = df.withColumn(
-                "alert_reason",
-                when(col("action").rlike("(?i)fail|error|deny|block"), 
-                     when(col("alert_reason") == "", "Login/Access Failed")
-                     .otherwise(col("alert_reason"))
-                ).otherwise(col("alert_reason"))
-            )
+        # 2. 위험 점수가 0점 초과인 '진짜 위협'만 걸러내기
+        anomaly_df = df_scored.filter(col("risk_score") > 0)
+        anomaly_count = anomaly_df.count()
+        
+        logger.info(f"✅ [Step 3] 위협 탐지 완료! (발견된 이상 행위: {anomaly_count}건)")
+        
+        if anomaly_count > 0:
+            logger.info("🔥 [탐지된 위협 샘플]")
+            anomaly_df.show(5, truncate=False)
             
-        logger.info("✅ [Plugin] 위협 분석 및 스코어링 완료")
-        return df
+        return anomaly_df
 
     except Exception as e:
-        logger.error(f"❌ [Plugin] Rule Engine 실행 중 에러: {e}")
-        return df # 에러가 나도 파이프라인이 끊기지 않도록 원본 반환
+        logger.error(f"❌ [Step 3] 탐지 엔진 오류: {e}")
+        return df

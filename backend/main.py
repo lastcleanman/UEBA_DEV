@@ -8,7 +8,6 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-# ⭐️ 라우터 임포트 부분에 `system` 추가!
 from backend.core.api.routers import pipeline, analytics, system, license, roadmap
 
 app = FastAPI(title="UEBA Enterprise API Server", version="2.0.0")

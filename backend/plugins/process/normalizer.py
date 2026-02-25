@@ -1,46 +1,36 @@
-import os
-import xml.etree.ElementTree as ET
-from pyspark.sql.functions import col, lit, expr
+from pyspark.sql.functions import col, regexp_extract, lit
 from backend.core.utils import get_logger
 
 logger = get_logger("Plugin-Process")
 
-def execute(spark, df, source_name, global_config):
-    base_dir = global_config.get("system", {}).get("base_dir", "/UEBA_DEV")
-    xml_path = os.path.join(base_dir, "conf", "parsers", f"{source_name}.xml")
+# ⭐️ executor에서 넘겨주는 source_name 파라미터를 추가로 받습니다.
+def execute(spark, df, source_name):
+    logger.info(f"⚙️ [{source_name}] 데이터 정제 시작 (입력: {df.count()}건)")
     
-    if os.path.exists(xml_path):
-        try:
-            tree = ET.parse(xml_path)
-            root = tree.getroot()
-            fmt = root.get("format", "json")
-            
-            # JSON일 때는 기존 방식(source -> target) 매핑
-            if fmt == "json":
-                # ⭐️ 핵심 수정: 'field' -> './/field' 로 변경
-                for field in root.findall('.//field'):
-                    src = field.get('source')
-                    tgt = field.get('target')
-                    if src and tgt and src in df.columns:
-                        df = df.withColumn(tgt, col(src))
-                        
-            # Delimited일 때는 사용자 정의 필드 파싱 (AIWAF 최적화)
-            elif fmt == "delimited":
-                if "user_defined" in df.columns:
-                    # USER_ID=123 같은 문자열에서 정규식으로 값만 추출
-                    df = df.withColumn("user_id", expr("regexp_extract(user_defined, 'USER_ID=([^ ]+)', 1)"))
-                    df = df.withColumn("user", expr("regexp_extract(user_defined, 'USER_NAME=([^ ]+)', 1)"))
-                    
-        except Exception as e: 
-            logger.error(f"❌ [{source_name}] 파싱/정제 에러: {e}")
-
-    # 필수 컬럼 보정 (분석 엔진이 터지지 않도록)
-    for c, v in [("risk_score", 0.0), ("alert_reason", ""), ("log_source", source_name)]:
-        if c not in df.columns: 
-            df = df.withColumn(c, lit(v))
-            
-    # 빈 값(Empty value)을 Null로 치환하여 분석 정확도 향상
-    for column in df.columns:
-        df = df.withColumn(column, expr(f"nullif(`{column}`, '[Empty value]')"))
+    try:
+        cols = df.columns
+        last_col = cols[-1] # 사용자정의 필드는 항상 마지막에 위치
         
-    return df
+        # IP 추출 로직: Web/Auth 로그는 5번(Client IP)이 존재하지만 시스템 로그는 없으므로 3번(Mgmt IP) 사용
+        ip_col = cols[5] if source_name in ["Auth_Logs", "Web_Logs"] and len(cols) > 5 else cols[3]
+
+        # ⭐️ UEBA 표준 5칸 포맷으로 강제 변환
+        parsed_df = df.select(
+            lit(source_name).alias("source"),                          # 1. 출처 (Auth, Web 등)
+            col(cols[0]).alias("event_type"),                          # 2. 이벤트 타입 (AUDIT, DETECT 등)
+            col(cols[2]).alias("timestamp"),                           # 3. 시간
+            col(ip_col).alias("src_ip"),                               # 4. IP
+            regexp_extract(col(last_col), r"USER_ID=(SJ_[0-9]+)", 1).alias("user_id") # 5. 사번 추출
+        )
+        
+        # 사번이 정규식으로 예쁘게 추출된 '진짜 데이터'만 필터링
+        parsed_df = parsed_df.filter(col("user_id") != "")
+        
+        valid_count = parsed_df.count()
+        logger.info(f"✅ [{source_name}] 정제 완료 (유효 데이터: {valid_count}건)")
+        
+        return parsed_df
+
+    except Exception as e:
+        logger.error(f"❌ [{source_name}] 정제 중 오류 발생: {e}")
+        return None

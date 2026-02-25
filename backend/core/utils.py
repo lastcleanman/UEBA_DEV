@@ -21,11 +21,7 @@ def get_logger(name):
     return logger
 
 def get_spark_session(app_name="UEBA_Enterprise_Engine"):
-    """
-    [유연성 강화 구조] Java 버전에 종속되지 않는 범용 PySpark 세션 생성기
-    어떤 버전의 JVM이 설치되어 있더라도 PySpark 구동기 레벨에서 동적으로 보안 옵션을 주입합니다.
-    """
-    
+   
     # 1. 범용 JVM 메모리 접근 허용 옵션 (어떤 버전이든 호환되도록 강제 주입)
     universal_jvm_opts = (
         "--add-opens=java.base/java.nio=ALL-UNNAMED "
@@ -34,7 +30,6 @@ def get_spark_session(app_name="UEBA_Enterprise_Engine"):
         "--add-opens=java.base/java.util=ALL-UNNAMED"
     )
     
-    # 2. ⭐️ OS가 아닌 PySpark 코어 런타임에 직접 주입 (이 방식은 절대 무시되지 않습니다)
     os.environ["PYSPARK_SUBMIT_ARGS"] = f"--driver-java-options '{universal_jvm_opts}' pyspark-shell"
     
     from pyspark.sql import SparkSession

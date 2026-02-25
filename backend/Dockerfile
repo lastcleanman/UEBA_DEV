@@ -1,6 +1,7 @@
 # 1. OS 버전
 FROM python:3.10-slim-bookworm
 
+ENV PYTHONDONTWRITEBYTECODE=1
 # 2. 필수 시스템 패키지 설치 (PySpark용 Java 및 프로세스 관리 도구)
 # 설치 완료 후 찌꺼기를 지워 이미지 용량을 최적화합니다.
 RUN apt-get update && \
