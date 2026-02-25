@@ -9,7 +9,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 # ⭐️ 라우터 임포트 부분에 `system` 추가!
-from backend.core.api.routers import pipeline, analytics, system
+from backend.core.api.routers import pipeline, analytics, system, license, roadmap
 
 app = FastAPI(title="UEBA Enterprise API Server", version="2.0.0")
 
@@ -25,6 +25,8 @@ app.add_middleware(
 app.include_router(pipeline.router)
 app.include_router(analytics.router)
 app.include_router(system.router) 
+app.include_router(license.router)
+app.include_router(roadmap.router)
 
 @app.get("/")
 def health_check():

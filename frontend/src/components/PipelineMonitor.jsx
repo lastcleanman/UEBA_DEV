@@ -29,7 +29,7 @@ export default function PipelineMonitor() {
   const startPipeline = async () => {
     try {
       await fetch('http://localhost:8000/api/v1/pipeline/run', { method: 'POST' });
-    } catch (e) {
+    } catch {
       alert("파이프라인 실행 요청 실패 (백엔드 확인 필요)");
     }
   };

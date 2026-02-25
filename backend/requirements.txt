@@ -6,3 +6,4 @@ sqlalchemy
 pymysql
 pyspark==3.4.1
 elasticsearch
+requests

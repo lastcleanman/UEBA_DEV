@@ -32,7 +32,7 @@ export default function StageLogViewer({ currentView }) {
       if (!res.ok) throw new Error("API not ready");
       const data = await res.json();
       setFileLogs(data.logs || []);
-    } catch (error) {
+    } catch {
       setFileLogs(["아직 해당 단계의 백엔드 로그 API(/api/v1/system/logs)가 연동되지 않았습니다.", "엔진 컨트롤 센터의 [파이프라인 가동]을 통해 먼저 데이터를 생성해주세요."]);
     }
     setIsLoading(false);

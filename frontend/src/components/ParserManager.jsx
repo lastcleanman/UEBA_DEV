@@ -16,8 +16,8 @@ export default function ParserManager() {
       if (!res.ok) throw new Error("API Not Ready");
       const data = await res.json();
       setParsers(data.parsers || {});
-    } catch (e) { 
-      console.warn("파서 API 연결 대기 중입니다.", e);
+    } catch (error) { 
+      console.warn("파서 API 연결 대기 중입니다.", error);
       setParsers({}); // 404 에러가 나더라도 빈 객체로 렌더링 유지
     }
   }, []);

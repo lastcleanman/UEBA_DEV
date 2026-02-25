@@ -14,8 +14,8 @@ CONF_DIR = os.path.join(BACKEND_DIR, "conf")
 # ⭐️ 파일명이 config.json이 아니라 ueba_settings.json 이었습니다!
 CONFIG_FILE = os.path.join(CONF_DIR, "ueba_settings.json")
 WATERMARK_FILE = os.path.join(CONF_DIR, "watermark.json")
-FLAG_FILE = os.path.join(DATA_DIR, "trigger_all.flag")
 MODE_FILE = os.path.join(DATA_DIR, "mode.txt")
 
 # 4. 실행 스크립트 경로 동적 맵핑
 SPARK_JOB_SCRIPT = os.path.join(CORE_DIR, "jobs", "spark_pipeline.py")
+PARSER_DIR = os.path.join(DATA_DIR, "parsers")

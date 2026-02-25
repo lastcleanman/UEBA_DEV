@@ -82,7 +82,7 @@ export default function LicenseManager() {
         // FastAPI는 내부 에러 발생 시 'detail' 필드에 에러 내용을 담아 보냅니다.
         alert(`❌ 서버 에러: ${result.detail || '알 수 없는 오류가 발생했습니다.'}`);
       }
-    } catch (error) {
+    } catch {
       alert("❌ 통신 중 오류가 발생했습니다. 백엔드 서버가 켜져 있는지 확인하세요.");
     } finally {
       setIsSaving(false);
