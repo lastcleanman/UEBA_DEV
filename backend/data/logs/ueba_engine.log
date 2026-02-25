@@ -1,0 +1,207 @@
+2026-02-25 07:01:25,475 - MultiLogGenerator - INFO - 🚀 AIWAF v5.0.2 규격 (구분자 포맷) 일회성 로그 생성 시작...
+2026-02-25 07:01:25,475 - MultiLogGenerator - INFO - 🔄 설정 파일에서 DB 정보를 읽어옵니다...
+2026-02-25 07:01:25,491 - MultiLogGenerator - INFO - 🔄 MariaDB(192.168.0.131)에서 사원 정보를 불러오는 중...
+2026-02-25 07:01:25,528 - MultiLogGenerator - INFO - ✅ 총 3000명의 사원 정보를 로드했습니다!
+2026-02-25 07:01:25,530 - MultiLogGenerator - WARNING - 🔥 [Anomaly Alert] 유경숙에 의한 이상 징후(DETECT) 생성됨!
+2026-02-25 07:01:25,530 - MultiLogGenerator - INFO - ----------------------------------------------------------------------
+2026-02-25 07:01:25,530 - MultiLogGenerator - INFO - ✅ 일회성 로그 적재 완료! 파이프라인 엔진으로 제어권을 넘깁니다.
+2026-02-25 07:02:16,997 - SparkPipelineJob - INFO - 🚀 [독립형 Spark Job] 파이프라인 분석 프로세스가 분리된 환경에서 시작됩니다...
+2026-02-25 07:02:17,013 - PipelineExecutor - INFO - 🚀 UEBA 파이프라인 분석을 시작합니다...
+2026-02-25 07:02:17,873 - PipelineExecutor - INFO - Step 1: 데이터 수집(Input) 시작
+2026-02-25 07:02:17,882 - PipelineExecutor - INFO - ⏩ [Auth_Logs] 신규 수집 데이터 없음
+2026-02-25 07:02:17,903 - PipelineExecutor - INFO - 📜 [History] Auth_Logs 완료 (0건)
+2026-02-25 07:02:17,903 - PipelineExecutor - INFO - ⏩ [Web_Logs] 신규 수집 데이터 없음
+2026-02-25 07:02:17,909 - PipelineExecutor - INFO - 📜 [History] Web_Logs 완료 (0건)
+2026-02-25 07:02:17,909 - PipelineExecutor - INFO - ⏩ [Firewall_Logs] 신규 수집 데이터 없음
+2026-02-25 07:02:17,914 - PipelineExecutor - INFO - 📜 [History] Firewall_Logs 완료 (0건)
+2026-02-25 07:02:17,915 - PipelineExecutor - INFO - ⏩ [Endpoint_Logs] 신규 수집 데이터 없음
+2026-02-25 07:02:17,920 - PipelineExecutor - INFO - 📜 [History] Endpoint_Logs 완료 (0건)
+2026-02-25 07:02:17,921 - PipelineExecutor - INFO - Step 2: 데이터 정제(Process) 시작
+2026-02-25 07:02:17,921 - PipelineExecutor - INFO - Step 3: 위협 탐지(Detect) 시작
+2026-02-25 07:02:17,921 - PipelineExecutor - INFO - Step 4: 최종 적재(Output) 시작
+2026-02-25 07:02:17,921 - PipelineExecutor - INFO - ✅ 파이프라인의 모든 단계가 성공적으로 완료되었습니다.
+2026-02-25 07:02:17,921 - SparkPipelineJob - INFO - ✅ [독립형 Spark Job] 파이프라인 처리가 성공적으로 완료되었습니다.
+2026-02-25 07:38:37,572 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 07:38:37,573 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 07:38:37,987 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/logs/Auth_Logs*.log)
+2026-02-25 07:38:37,987 - Plugin-Input - WARNING - ⚠️ [Auth_Logs] 수집할 파일이 없습니다.
+2026-02-25 07:38:37,987 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/logs/Web_Logs*.log)
+2026-02-25 07:38:37,988 - Plugin-Input - WARNING - ⚠️ [Web_Logs] 수집할 파일이 없습니다.
+2026-02-25 07:38:37,988 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/logs/Firewall_Logs*.log)
+2026-02-25 07:38:37,988 - Plugin-Input - WARNING - ⚠️ [Firewall_Logs] 수집할 파일이 없습니다.
+2026-02-25 07:38:37,988 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/logs/Endpoint_Logs*.log)
+2026-02-25 07:38:37,988 - Plugin-Input - WARNING - ⚠️ [Endpoint_Logs] 수집할 파일이 없습니다.
+2026-02-25 07:38:37,988 - PipelineExecutor - WARNING - ⚠️ 수집된 데이터가 없어 파이프라인을 조기 종료합니다.
+2026-02-25 07:43:57,480 - MultiLogGenerator - INFO - 🚀 AIWAF v5.0.2 규격 (구분자 포맷) 일회성 로그 생성 시작...
+2026-02-25 07:43:57,480 - MultiLogGenerator - INFO - 🔄 설정 파일에서 DB 정보를 읽어옵니다...
+2026-02-25 07:43:57,508 - MultiLogGenerator - INFO - 🔄 MariaDB(192.168.0.131)에서 사원 정보를 불러오는 중...
+2026-02-25 07:43:57,560 - MultiLogGenerator - INFO - ✅ 총 3000명의 사원 정보를 로드했습니다!
+2026-02-25 07:43:57,561 - MultiLogGenerator - INFO - ----------------------------------------------------------------------
+2026-02-25 07:43:57,561 - MultiLogGenerator - INFO - ✅ 일회성 로그 적재 완료! 파이프라인 엔진으로 제어권을 넘깁니다.
+2026-02-25 07:44:25,153 - MultiLogGenerator - INFO - 🚀 AIWAF v5.0.2 규격 (구분자 포맷) 일회성 로그 생성 시작...
+2026-02-25 07:44:25,154 - MultiLogGenerator - INFO - 🔄 설정 파일에서 DB 정보를 읽어옵니다...
+2026-02-25 07:44:25,169 - MultiLogGenerator - INFO - 🔄 MariaDB(192.168.0.131)에서 사원 정보를 불러오는 중...
+2026-02-25 07:44:25,206 - MultiLogGenerator - INFO - ✅ 총 3000명의 사원 정보를 로드했습니다!
+2026-02-25 07:44:25,209 - MultiLogGenerator - INFO - ----------------------------------------------------------------------
+2026-02-25 07:44:25,209 - MultiLogGenerator - INFO - ✅ 일회성 로그 적재 완료! 파이프라인 엔진으로 제어권을 넘깁니다.
+2026-02-25 16:48:59,485 - MultiLogGenerator - INFO - 🚀 AIWAF v5.0.2 규격 (구분자 포맷) 일회성 로그 생성 시작...
+2026-02-25 16:48:59,485 - MultiLogGenerator - INFO - 🔄 설정 파일에서 DB 정보를 읽어옵니다...
+2026-02-25 16:48:59,500 - MultiLogGenerator - INFO - 🔄 MariaDB(192.168.0.131)에서 사원 정보를 불러오는 중...
+2026-02-25 16:48:59,541 - MultiLogGenerator - INFO - ✅ 총 3000명의 사원 정보를 로드했습니다!
+2026-02-25 16:48:59,542 - MultiLogGenerator - INFO - ----------------------------------------------------------------------
+2026-02-25 16:48:59,542 - MultiLogGenerator - INFO - ✅ 일회성 로그 적재 완료! 파이프라인 엔진으로 제어권을 넘깁니다.
+2026-02-25 17:07:45,793 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 17:07:45,793 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 17:07:46,184 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log)
+2026-02-25 17:07:46,227 - Plugin-Input - ERROR - ❌ [Auth_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'row_count' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, row_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Auth_Logs', 'count': 29}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:07:46,227 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Web_Logs*.log)
+2026-02-25 17:07:46,250 - Plugin-Input - ERROR - ❌ [Web_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'row_count' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, row_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Web_Logs', 'count': 29}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:07:46,250 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log)
+2026-02-25 17:07:46,273 - Plugin-Input - ERROR - ❌ [Firewall_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'row_count' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, row_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Firewall_Logs', 'count': 29}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:07:46,273 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log)
+2026-02-25 17:07:46,296 - Plugin-Input - ERROR - ❌ [Endpoint_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'row_count' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, row_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Endpoint_Logs', 'count': 29}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:07:46,296 - PipelineExecutor - WARNING - ⚠️ 수집된 데이터가 없어 파이프라인을 조기 종료합니다.
+2026-02-25 17:09:49,627 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 17:09:49,627 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 17:09:50,029 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log)
+2026-02-25 17:09:50,080 - Plugin-Input - ERROR - ❌ [Auth_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'timestamp' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, processed_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Auth_Logs', 'count': 30}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:09:50,081 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Web_Logs*.log)
+2026-02-25 17:09:50,102 - Plugin-Input - ERROR - ❌ [Web_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'timestamp' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, processed_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Web_Logs', 'count': 30}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:09:50,102 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log)
+2026-02-25 17:09:50,123 - Plugin-Input - ERROR - ❌ [Firewall_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'timestamp' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, processed_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Firewall_Logs', 'count': 30}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:09:50,123 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log)
+2026-02-25 17:09:50,143 - Plugin-Input - ERROR - ❌ [Endpoint_Logs] 수집 중 에러: (pymysql.err.OperationalError) (1054, "Unknown column 'timestamp' in 'field list'")
+[SQL: 
+                    INSERT INTO sj_ueba_ingestion_history (source_name, processed_count, status, timestamp)
+                    VALUES (%(name)s, %(count)s, 'SUCCESS', NOW())
+                ]
+[parameters: {'name': 'Endpoint_Logs', 'count': 30}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-02-25 17:09:50,144 - PipelineExecutor - WARNING - ⚠️ 수집된 데이터가 없어 파이프라인을 조기 종료합니다.
+2026-02-25 17:10:07,395 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 17:10:07,395 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 17:10:07,660 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log)
+2026-02-25 17:10:07,704 - Plugin-Input - INFO - 💾 [Auth_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:10:09,995 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Web_Logs*.log)
+2026-02-25 17:10:10,022 - Plugin-Input - INFO - 💾 [Web_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:10:10,144 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log)
+2026-02-25 17:10:10,168 - Plugin-Input - INFO - 💾 [Firewall_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:10:10,272 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log)
+2026-02-25 17:10:10,293 - Plugin-Input - INFO - 💾 [Endpoint_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:10:10,397 - PipelineExecutor - INFO - ✅ 1단계 완료: 총 4개 소스에서 데이터 수집 및 DB 적재 성공!
+2026-02-25 17:10:10,471 - PipelineExecutor - ERROR - ❌ 파이프라인 실행 중 치명적 오류 발생: [NUM_COLUMNS_MISMATCH] UNION can only be performed on inputs with the same number of columns, but the first input has 10 columns and the second input has 25 columns.;
+'Union false, false
+:- LogicalRDD [0#0, 1#1, 2#2, 3#3, 4#4, 5#5, 6#6, 7#7, 8#8, 9#9], false
++- Project [0#20, 1#21, 2#22, 3#23, 4#24, 5#25, 6#26, 7#27, 8#28, 9#29, 10#30, 11#31, 12#32, 13#33, 14#34, 15#35, 16#36, 17#37, 18#38, 19#39, 20#40, 21#41, 22#42, 23#43, 24#44]
+   +- LogicalRDD [0#20, 1#21, 2#22, 3#23, 4#24, 5#25, 6#26, 7#27, 8#28, 9#29, 10#30, 11#31, 12#32, 13#33, 14#34, 15#35, 16#36, 17#37, 18#38, 19#39, 20#40, 21#41, 22#42, 23#43, 24#44], false
+
+2026-02-25 17:12:48,400 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 17:12:48,400 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 17:12:48,812 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log)
+2026-02-25 17:12:48,862 - Plugin-Input - INFO - 💾 [Auth_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:12:51,163 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Web_Logs*.log)
+2026-02-25 17:12:51,185 - Plugin-Input - INFO - 💾 [Web_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:12:51,302 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log)
+2026-02-25 17:12:51,326 - Plugin-Input - INFO - 💾 [Firewall_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:12:51,426 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log)
+2026-02-25 17:12:51,451 - Plugin-Input - INFO - 💾 [Endpoint_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:12:51,551 - PipelineExecutor - INFO - ✅ 1단계 완료: 총 4개 소스 수집 성공!
+2026-02-25 17:12:51,551 - PipelineExecutor - INFO - ▶️ [Step 2] Parser 기반 데이터 정제 시작
+2026-02-25 17:12:51,949 - Plugin-Process - INFO - ⚙️ [Auth_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:12:52,220 - Plugin-Process - INFO - ✅ [Auth_Logs] 정제 완료 (유효 데이터: 30건)
+2026-02-25 17:12:52,479 - Plugin-Process - INFO - ⚙️ [Web_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:12:52,668 - Plugin-Process - INFO - ✅ [Web_Logs] 정제 완료 (유효 데이터: 30건)
+2026-02-25 17:12:52,906 - Plugin-Process - INFO - ⚙️ [Firewall_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:12:53,095 - Plugin-Process - INFO - ✅ [Firewall_Logs] 정제 완료 (유효 데이터: 0건)
+2026-02-25 17:12:53,535 - Plugin-Process - INFO - ⚙️ [Endpoint_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:12:53,725 - Plugin-Process - INFO - ✅ [Endpoint_Logs] 정제 완료 (유효 데이터: 0건)
+2026-02-25 17:12:54,015 - PipelineExecutor - INFO - ✅ 2단계 정제 및 병합 완료! (아래는 정제된 샘플 데이터입니다)
+2026-02-25 17:17:21,923 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 17:17:21,923 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 17:17:22,182 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log)
+2026-02-25 17:17:22,225 - Plugin-Input - INFO - 💾 [Auth_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:24,279 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Web_Logs*.log)
+2026-02-25 17:17:24,306 - Plugin-Input - INFO - 💾 [Web_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:24,414 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log)
+2026-02-25 17:17:24,439 - Plugin-Input - INFO - 💾 [Firewall_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:24,542 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log)
+2026-02-25 17:17:24,565 - Plugin-Input - INFO - 💾 [Endpoint_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:24,663 - PipelineExecutor - INFO - ✅ 1단계 완료: 총 4개 소스 수집 성공!
+2026-02-25 17:17:24,663 - PipelineExecutor - INFO - ▶️ [Step 2] Parser 기반 데이터 정제 시작
+2026-02-25 17:17:25,048 - Plugin-Process - INFO - ⚙️ [Auth_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:25,335 - Plugin-Process - INFO - ✅ [Auth_Logs] 정제 완료 (유효 데이터: 30건)
+2026-02-25 17:17:25,594 - Plugin-Process - INFO - ⚙️ [Web_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:25,783 - Plugin-Process - INFO - ✅ [Web_Logs] 정제 완료 (유효 데이터: 30건)
+2026-02-25 17:17:26,020 - Plugin-Process - INFO - ⚙️ [Firewall_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:26,204 - Plugin-Process - INFO - ✅ [Firewall_Logs] 정제 완료 (유효 데이터: 0건)
+2026-02-25 17:17:26,658 - Plugin-Process - INFO - ⚙️ [Endpoint_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:26,845 - Plugin-Process - INFO - ✅ [Endpoint_Logs] 정제 완료 (유효 데이터: 0건)
+2026-02-25 17:17:27,125 - PipelineExecutor - INFO - ✅ 2단계 정제 및 병합 완료! (아래는 정제된 샘플 데이터입니다)
+2026-02-25 17:17:35,087 - PipelineExecutor - INFO - 🚀 UEBA 데이터 파이프라인 가동을 시작합니다.
+2026-02-25 17:17:35,088 - PipelineExecutor - INFO - ▶️ [Step 1] 데이터 수집 및 DB 이력 적재 시작
+2026-02-25 17:17:35,339 - Plugin-Input - INFO - 🔍 [Auth_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Auth_Logs*.log)
+2026-02-25 17:17:35,383 - Plugin-Input - INFO - 💾 [Auth_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:37,496 - Plugin-Input - INFO - 🔍 [Web_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Web_Logs*.log)
+2026-02-25 17:17:37,522 - Plugin-Input - INFO - 💾 [Web_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:37,648 - Plugin-Input - INFO - 🔍 [Firewall_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Firewall_Logs*.log)
+2026-02-25 17:17:37,671 - Plugin-Input - INFO - 💾 [Firewall_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:37,775 - Plugin-Input - INFO - 🔍 [Endpoint_Logs] 로그 파일 탐색 중... (/UEBA_DEV/backend/data/input/logs/Endpoint_Logs*.log)
+2026-02-25 17:17:37,798 - Plugin-Input - INFO - 💾 [Endpoint_Logs] DB 수집 이력 적재 완료: 30건
+2026-02-25 17:17:37,899 - PipelineExecutor - INFO - ✅ 1단계 완료: 총 4개 소스 수집 성공!
+2026-02-25 17:17:37,899 - PipelineExecutor - INFO - ▶️ [Step 2] Parser 기반 데이터 정제 시작
+2026-02-25 17:17:38,299 - Plugin-Process - INFO - ⚙️ [Auth_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:38,588 - Plugin-Process - INFO - ✅ [Auth_Logs] 정제 완료 (유효 데이터: 30건)
+2026-02-25 17:17:38,864 - Plugin-Process - INFO - ⚙️ [Web_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:39,075 - Plugin-Process - INFO - ✅ [Web_Logs] 정제 완료 (유효 데이터: 30건)
+2026-02-25 17:17:39,332 - Plugin-Process - INFO - ⚙️ [Firewall_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:39,501 - Plugin-Process - INFO - ✅ [Firewall_Logs] 정제 완료 (유효 데이터: 0건)
+2026-02-25 17:17:39,915 - Plugin-Process - INFO - ⚙️ [Endpoint_Logs] 데이터 정제 시작 (입력: 30건)
+2026-02-25 17:17:40,075 - Plugin-Process - INFO - ✅ [Endpoint_Logs] 정제 완료 (유효 데이터: 0건)
+2026-02-25 17:17:40,357 - PipelineExecutor - INFO - ✅ 2단계 정제 및 병합 완료! (아래는 정제된 샘플 데이터입니다)
+2026-02-25 17:17:40,357 - PipelineExecutor - INFO - ▶️ [Step 3] 룰 기반 위협 분석 시작
+2026-02-25 17:17:40,642 - Plugin-Detect - INFO - 🚨 [Step 3] 룰 기반 위협 탐지(Rule Engine) 시작 (분석 대상: 60건)
+2026-02-25 17:17:40,946 - Plugin-Detect - INFO - ✅ [Step 3] 위협 탐지 완료! (발견된 이상 행위: 30건)
+2026-02-25 17:17:40,946 - Plugin-Detect - INFO - 🔥 [탐지된 위협 샘플]
+2026-02-25 17:17:42,034 - PipelineExecutor - INFO - 🎯 파이프라인 분석 결과: 총 30건의 위협이 탐지되었습니다.
