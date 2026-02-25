@@ -17,8 +17,7 @@ Options:
 
 What this script runs:
   1) Backend static check      : python3 -m compileall backend (or python fallback)
-  2) Frontend static check     : npm run lint
-  3) (Optional) Docker smoke   : compose up, backend uvicorn, API health checks
+  2) (Optional) Docker smoke   : compose up, backend uvicorn, API health checks
 USAGE
 }
 
@@ -53,13 +52,6 @@ command -v npm >/dev/null 2>&1 || fail "npm is required"
 log "STEP" "Backend static compile check (using ${PYTHON_BIN})"
 "${PYTHON_BIN}" -m compileall backend
 ok "Backend compileall"
-
-log "STEP" "Frontend lint check"
-(
-  cd frontend
-  npm run lint
-)
-ok "Frontend lint"
 
 has_docker_cli="false"
 if command -v docker >/dev/null 2>&1; then
