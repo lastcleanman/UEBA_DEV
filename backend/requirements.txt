@@ -1,6 +1,8 @@
-sqlalchemy
-pymysql
-psycopg2-binary
+fastapi
+uvicorn
 pandas
 pyarrow
-elasticsearch<9.0.0
+sqlalchemy
+pymysql
+pyspark==3.4.1
+elasticsearch

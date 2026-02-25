@@ -1,33 +1,6 @@
+version: '3.8'
 services:
-  # ----------------------------------------
-  # 1. 🚀 신규 UEBA Core Engine (우리가 만든 것)
-  # ----------------------------------------
-  ueba-engine-dev:
-    build: .
-    image: ueba-engine:dev
-    container_name: ueba-engine-dev
-    restart: always             
-    user: root                  
-    volumes:
-      - .:/UEBA_DEV
-      - ./data:/UEBA_DEV/data
-      - ./conf/parsers:/UEBA_DEV/conf/parsers
-    working_dir: /UEBA_DEV
-    environment:
-      - TZ=Asia/Seoul
-      - PYTHONPATH=/UEBA_DEV
-      - SPARK_HOME=/opt/spark  # Spark 경로 명시
-    ports:
-      - "8080:8080"  # Spark Master Web UI
-      - "4040:4040"  # ⭐️ 실시간 작업 모니터링용 (Spark UI)
-    command: >
-      bash -c "pip install pandas pyarrow sqlalchemy pymysql elasticsearch && python3 /UEBA_DEV/core/engine.py"
-    networks:
-      - ueba-network
-
-  # ----------------------------------------
-  # 2. 🗄️ 백엔드 인프라 (DB & Search)
-  # ----------------------------------------
+  # 1. IAM 및 자산 정보 저장용 (PostgreSQL)
   ueba-postgres:
     image: postgres:15
     container_name: ueba-postgres
@@ -35,14 +8,15 @@ services:
     ports:
       - "5433:5432"
     environment:
-      - POSTGRES_USER=admin       
-      - POSTGRES_PASSWORD=Suju!0901   
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=Suju!0901
       - POSTGRES_DB=ueba_db
-    volumes: 
+    volumes:
       - ./postgres_data:/var/lib/postgresql/data
     networks:
       - ueba-network
 
+  # 2. 대용량 로그 검색 및 분석용 (Elasticsearch)
   ueba-elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
     container_name: ueba-elasticsearch
@@ -52,11 +26,12 @@ services:
       - "9300:9300"
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false  # 로컬 개발 편의성을 위해 SSL / 인증 보안 해제 ( HTTP 통신 )
+      - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
     networks:
       - ueba-network
 
+  # 3. 데이터 시각화 도구 (Kibana)
   ueba-kibana:
     image: docker.elastic.co/kibana/kibana:8.10.2
     container_name: ueba-kibana
@@ -69,22 +44,45 @@ services:
       - ueba-elasticsearch
     networks:
       - ueba-network
-# ----------------------------------------
-  # 3. 🌐 웹 서비스 (Frontend & Backend)
-  # ----------------------------------------
+
+  # ⭐️ 4. 분산 데이터 처리 엔진 (PySpark Master)
+  ueba-spark:
+    image: apache/spark:3.4.1
+    container_name: ueba-spark
+    restart: always
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      - "8080:8080" # Spark Master Web UI 
+      - "7077:7077" # Spark Master RPC Port
+    volumes:
+      - ./:/UEBA_DEV  # 엔진과 동일한 경로를 마운트하여 파케이(Parquet) 파일 공유
+    networks:
+      - ueba-network
+
+  # ⭐️ 5. 통합 Backend (API + Engine + Parser + Log Generator)
   ueba-backend:
-    image: python:3.10-slim
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: ueba-backend
     restart: always
     ports:
       - "8000:8000"
+      - "4040:4040"
     volumes:
       - ./:/UEBA_DEV
-    working_dir: /UEBA_DEV/backend
-    command: bash -c "pip install fastapi uvicorn pandas pyarrow sqlalchemy pymysql && uvicorn main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      - ueba-spark
     networks:
       - ueba-network
 
+  # 6. Frontend (React)
   ueba-frontend:
     image: node:22-alpine
     container_name: ueba-frontend

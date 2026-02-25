@@ -1,0 +1,65 @@
+{
+    "system": {
+        "es_host": "ueba-elasticsearch",
+        "es_port": "9200",
+        "es_index": "ueba-alerts-v0.1",
+        "base_dir": "/UEBA_DEV",
+        "license_tier": "enterprise"
+    },
+    "pipeline": {
+        "input": ["plugins.input.data_reader"],
+        "process": [],
+        "detection": [],
+        "output": [
+        "plugins.output.save_csv"  
+        ]
+    },
+    "sources": [
+        {
+            "name": "ueba_postgresDB",
+            "type": "postgres",
+            "enabled": false,
+            "host": "ueba-postgres",
+            "port": "5432",
+            "user": "admin",
+            "password": "Suju!0901",
+            "database": "ueba_db",
+            "table_name": "employees",
+            "watermark_col": "emp_id",
+            "watermark_default": "0"
+        },
+        {
+            "name": "ueba_mariaDB",
+            "type": "mariadb",
+            "enabled": false,
+            "host": "192.168.0.131",
+            "port": "13306",
+            "user": "ueba_user",
+            "password": "Suju!0901",
+            "database": "UEBA_TEST",
+            "table_name": "sj_ueba_hr",
+            "watermark_col": "emp_id",
+            "watermark_default": "0"
+        },
+        {
+            "name": "Auth_Logs",
+            "type": "file",
+            "path": "/UEBA_DEV/data/logs/Auth_Logs*.log"
+        },
+        {
+            "name": "Web_Logs",
+            "type": "file",
+            "path": "/UEBA_DEV/data/logs/Web_Logs*.log"
+        },
+        {
+            "name": "Firewall_Logs",
+            "type": "file",
+            "path": "/UEBA_DEV/data/logs/Firewall_Logs*.log"
+        },
+        {
+            "name": "Endpoint_Logs",
+            "type": "file",
+            "path": "/UEBA_DEV/data/logs/Endpoint_Logs*.log"
+        }
+    ]
+}
