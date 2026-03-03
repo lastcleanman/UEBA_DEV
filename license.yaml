@@ -1,0 +1,32 @@
+schema_version: 1
+
+tenants:
+  acme:
+    display_name: "ACME Corp"
+    tier: enterprise
+    enabled_modules:
+      - basic.detect
+      - basic.scoring
+      - basic.workflow
+      - standard.ml_detect
+      - standard.explainer
+      - standard.ai_schema
+      - standard.soar_api
+      - enterprise.advanced_soar
+      - enterprise.deploy
+      - enterprise.distribute
+      - enterprise.grep_pipeline
+      - standard.parser_builder
+    limits:
+      max_eps: 2000
+      max_models: 10
+
+  bravo:
+    display_name: "BRAVO Inc"
+    tier: basic
+    enabled_modules:
+      - basic.detect
+      - basic.scoring
+    limits:
+      max_eps: 200
+      max_models: 1

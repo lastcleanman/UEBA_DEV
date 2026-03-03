@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<LogSchema tenant="acme" type="event">
+  <Field name="timestamp" type="datetime" confidence="99%"/>
+  <Field name="user" type="string" confidence="95%"/>
+  <Field name="action" type="string" confidence="98%"/>
+  <Field name="src_ip" type="ip_address" confidence="92%"/>
+</LogSchema>

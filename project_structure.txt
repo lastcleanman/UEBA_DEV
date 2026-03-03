@@ -1,0 +1,150 @@
+[kdw@suju-kdw UEBA]$ tree -I 'node_modules|__pycache__|.git|.pytest_cache|venv|data|logs|postgres_data'
+.
+├── backend
+│   ├── app
+│   │   ├── api
+│   │   │   ├── __init__.py
+│   │   │   └── v1
+│   │   │       ├── __init__.py
+│   │   │       ├── routes_admin.py
+│   │   │       └── routes_modules.py
+│   │   ├── collectors
+│   │   │   ├── base_collector.py
+│   │   │   ├── buffer_manager.py
+│   │   │   ├── edge_hub.py
+│   │   │   ├── __init__.py
+│   │   │   ├── offset_manager.py
+│   │   │   ├── protocols
+│   │   │   │   ├── file_tailer.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── jdbc_poller.py
+│   │   │   │   ├── ssh_fetcher.py
+│   │   │   │   └── syslog_listener.py
+│   │   │   └── router.py
+│   │   ├── core
+│   │   │   ├── database.py
+│   │   │   ├── __init__.py
+│   │   │   ├── logger.py
+│   │   │   ├── normalizer.py
+│   │   │   └── spark_runner.py
+│   │   ├── __init__.py
+│   │   ├── license
+│   │   │   ├── __init__.py
+│   │   │   └── manager.py
+│   │   ├── main.py
+│   │   ├── models
+│   │   │   ├── ai_schema.py
+│   │   │   ├── __init__.py
+│   │   │   └── settings.py
+│   │   ├── modules
+│   │   │   ├── ai_schema
+│   │   │   │   └── router.py
+│   │   │   ├── detection
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── router.py
+│   │   │   ├── __init__.py
+│   │   │   ├── pipeline
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── router.py
+│   │   │   ├── scoring
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── router.py
+│   │   │   └── soar
+│   │   │       ├── __init__.py
+│   │   │       └── router.py
+│   │   ├── plugins
+│   │   │   ├── base.py
+│   │   │   ├── basic
+│   │   │   ├── enterprise
+│   │   │   ├── __init__.py
+│   │   │   ├── registry.py
+│   │   │   └── standard
+│   │   ├── status
+│   │   │   └── service.py
+│   │   └── tenants
+│   │       ├── context.py
+│   │       ├── __init__.py
+│   │       └── resolver.py
+│   ├── Dockerfile
+│   ├── __init__.py
+│   ├── requirements.txt
+│   ├── tests
+│   │   ├── __init__.py
+│   │   ├── test_api
+│   │   │   └── __init__.py
+│   │   ├── test_collectors
+│   │   └── test_modules
+│   └── tools
+│       ├── fake_log_streamer.py
+│       └── __init__.py
+├── docker-compose.yml
+├── frontend
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── src
+│   │   ├── api
+│   │   │   ├── client.js
+│   │   │   └── modules.js
+│   │   ├── App.vue
+│   │   ├── assets
+│   │   │   └── theme.css
+│   │   ├── components
+│   │   │   ├── LogTerminal.vue
+│   │   │   ├── SideNavTree.vue
+│   │   │   └── TenantSelector.vue
+│   │   ├── config
+│   │   │   └── theme.js
+│   │   ├── core_components
+│   │   │   ├── layout
+│   │   │   │   └── MainLayout.vue
+│   │   │   └── nav
+│   │   │       └── SideNav.vue
+│   │   ├── layouts
+│   │   │   └── AppLayout.vue
+│   │   ├── main.js
+│   │   ├── nav
+│   │   │   └── moduleNav.js
+│   │   ├── plugin_views
+│   │   │   ├── Alert.vue
+│   │   │   ├── basic
+│   │   │   │   ├── Detect.vue
+│   │   │   │   ├── Scoring.vue
+│   │   │   │   └── Workflow.vue
+│   │   │   ├── Dashboard.vue
+│   │   │   ├── Detection.vue
+│   │   │   ├── enterprise
+│   │   │   │   ├── AdvancedSoar.vue
+│   │   │   │   ├── Deploy.vue
+│   │   │   │   ├── Distribute.vue
+│   │   │   │   └── GrepPipeline.vue
+│   │   │   ├── Policy.vue
+│   │   │   └── standard
+│   │   │       ├── AISchema.vue
+│   │   │       ├── Explainer.vue
+│   │   │       ├── MLDetect.vue
+│   │   │       ├── ParserBuilder.vue
+│   │   │       ├── SchemaViewer.vue
+│   │   │       └── SoarApi.vue
+│   │   ├── router
+│   │   │   └── index.js
+│   │   └── store
+│   └── vite.config.js
+├── license.yaml
+├── project_structure.txt
+└── tenants
+    └── acme
+        ├── artifacts
+        │   └── parsers
+        │       ├── schema_event_20260227_142926.xml
+        │       ├── schema_event_20260227_144022.xml
+        │       ├── schema_event_20260227_144028.xml
+        │       ├── schema_event_20260227_144029.xml
+        │       ├── schema_resource_20260227_142932.xml
+        │       └── schema_syslog_20260227_142929.xml
+        ├── config
+        ├── metrics
+        └── models
+
+50 directories, 96 files

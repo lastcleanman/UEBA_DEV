@@ -1,0 +1,101 @@
+/* ☀️ 기본(Light) 테마: 눈이 편안한 밝은 회색 톤과 뚜렷한 검정 글씨 */
+:root[data-theme="light"] {
+  --bg-base: #f3f4f6;       /* 전체 배경 */
+  --bg-panel: #ffffff;      /* 카드 패널 배경 */
+  --text-main: #111827;     /* 기본 텍스트 (아주 진한 회검정) */
+  --text-muted: #4b5563;    /* 보조/설명 텍스트 */
+  --border-color: #d1d5db;  /* 테두리 선 */
+  --primary-color: #2563eb; /* 포인트 색상 (가독성 좋은 파랑) */
+  --btn-bg: #f3f4f6;        
+  --btn-text: #111827;
+  --btn-hover: #e5e7eb;
+  --code-bg: #f8fafc;       /* 코드 블럭 배경 */
+  --code-text: #b45309;     /* 코드 블럭 글씨 */
+}
+
+/* 🌙 다크(Dark) 테마: 깊이감 있는 어두운 톤과 눈부시지 않은 흰 글씨 */
+:root[data-theme="dark"] {
+  --bg-base: #111827;
+  --bg-panel: #1f2937;
+  --text-main: #f9fafb;     /* 기본 텍스트 (밝은 흰색) */
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+  --primary-color: #4ade80; /* 포인트 색상 (초록) */
+  --btn-bg: #374151;
+  --btn-text: #f9fafb;
+  --btn-hover: #4b5563;
+  --code-bg: #0f172a;
+  --code-text: #eab308;
+}
+
+/* ⭐️ 전체 폰트 크기 및 스타일 튜닝 */
+body {
+  margin: 0;
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  /* 폰트를 모던하게, 크기는 15px로 시원하게 키웁니다 */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px; 
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* =========================================================
+   📦 글로벌 공통 UI 컴포넌트 클래스 (Design System)
+========================================================= */
+
+/* 1. 헤더 (타이틀 및 설명) */
+.header { margin-bottom: 25px; }
+.header h2 { font-size: 1.6rem; margin-bottom: 5px; color: var(--text-main); }
+.header p { font-size: 1.05rem; color: var(--text-muted); }
+
+/* 2. 카드 패널 */
+.card { 
+  background: var(--bg-panel); padding: 25px; border-radius: 8px; 
+  border: 1px solid var(--border-color); box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+  margin-bottom: 20px; transition: all 0.3s ease; 
+}
+.card h3 { 
+  margin-top: 0; color: var(--primary-color); font-size: 1.25rem; 
+  border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; 
+}
+
+/* 3. 데이터 테이블 */
+.data-table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+.data-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: bold; }
+.data-table td { padding: 15px 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+.badge { background: var(--primary-color); color: #fff; padding: 5px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; display: inline-block; }
+.date-col, .path-col { color: var(--text-muted); font-size: 0.95rem; }
+.empty-msg { text-align: center; color: var(--text-muted); padding: 40px !important; }
+
+/* 4. 입력 폼 (Input, Select, Textarea) */
+label { font-weight: bold; margin-bottom: 5px; display: block; color: var(--text-main); font-size: 1.05rem; }
+.form-input, .form-select, select, input[type="text"], textarea { 
+  width: 100%; background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border-color); 
+  padding: 10px 12px; border-radius: 6px; font-size: 1rem; transition: 0.2s; box-sizing: border-box; 
+}
+.form-input:focus, .form-select:focus, select:focus, input:focus, textarea:focus { 
+  outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); 
+}
+.short-input { width: 100px; text-align: center; }
+
+/* 5. 버튼 모음 */
+.btn-group { display: flex; gap: 10px; }
+button { font-size: 0.95rem; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; transition: 0.2s; font-weight: bold; }
+button:hover { filter: brightness(0.9); transform: translateY(-1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
+
+.btn-primary, .btn-train, .btn-test { background: var(--primary-color); color: #fff; }
+.btn-secondary { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: var(--btn-hover); }
+.btn-success { background: #10b981; color: #fff; }
+.btn-danger { background: #ef4444; color: #fff; padding: 6px 12px; }
+.btn-add { background: var(--btn-bg); color: var(--text-main); border: 1px dashed var(--border-color); }
+.btn-add:hover { background: var(--btn-hover); border-style: solid; }
+
+/* 6. 코드 뷰어 (XML, JSON 등) */
+pre, .code-viewer { 
+  background: var(--code-bg); color: var(--code-text); padding: 15px; border-radius: 6px; 
+  overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.95rem; 
+  border: 1px solid var(--border-color); margin: 0; line-height: 1.5;
+}

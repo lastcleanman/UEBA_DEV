@@ -1,9 +1,15 @@
-version: '3.8'
+# AUTHOR : PARK JUN WOONG 
+# CREATE : 2025.12.03 ( Ver_1.0 )
+# MODIFY HISTORY
+# - Backend, Frontend Docker 추가 설정    ( 2026.02.03 Ver_1.1 )
+# - 전체 IMAGE 최신 안정화 버전으로 수정     ( 2026.02.26 Ver_1.2 )
+#
 
+version: '3.8'
 services:
-  # 1. IAM 및 자산 정보 저장용 (PostgreSQL)
+  # 1. IAM 및 자산 정보 저장용 (PostgreSQL / 15 -> 16-alpine)
   postgres:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: ueba-postgres
     environment:
       - POSTGRES_USER=admin          # 개별 로컬이라 별도의 ID 생성도 가능하지만 통일성을 위해 admin 으로 지정
@@ -16,9 +22,9 @@ services:
     networks:
       - ueba-network                 # Docker 재 실행시 내부 IP 변경에도 대응할 수 있도록 같은 Network 대역으로 묶어서 활용
 
-  # 2. 대용량 로그 검색 및 분석용 (Elasticsearch)
+  # 2. 대용량 로그 검색 및 분석용 (Elasticsearch / 8.10.2 -> 8.17.0 )
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
     container_name: ueba-elasticsearch
     environment:
       - discovery.type=single-node
@@ -30,66 +36,74 @@ services:
       - ./data/elasticsearch:/usr/share/elasticsearch/data
     networks:
       - ueba-network
-  # 3. 분산 데이터 처리 엔진 (PySpark)
+
+  # 3. 분산 데이터 처리 엔진 (PySpark 3.4.1 -> 3.5.3)
   spark:
-    image: apache/spark:3.4.1
+    image: apache/spark:3.5.3
     container_name: ueba-spark
-    user: root  # [추가] pip 설치 시 권한 에러(Permission denied) 방지용
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
-      - TZ=Asia/Seoul
-      - CONFIG_DIR=/UEBA/common/setup
+
     # 컨테이너 실행 시 Spark Master를 명시적으로 실행하여 프로세스 종료 방지
-    command: >
-      bash -c "pip install pyspark pandas sqlalchemy pymysql elasticsearch && /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master && tail -f /dev/null"
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     ports:
       - "8080:8080" # Spark Master Web UI ( 사람이 웹 브라우저 상태로 확인하는 용도 )
       - "7077:7077" # Spark Master RPC Port ( 프로그램 / 코드가 데이터 처리를 요청하는 용도 )
-      - "5000:5000" # log 확인용 WEB(5000)
     volumes:
       - ./apps:/opt/spark/apps  # 로컬에서 작성한 분석 코드 ( .py) 연동
       - ./data:/opt/spark/data  # 분석에 필요한 데이터 파일 저장소
-      - .:/UEBA
-      - ./data/remote_logs:/UEBA/data/remote_logs
-      - /UEBA_WEB:/UEBA_WEB
-      - /UEBA:/UEBA
-      - ./UEBA/common/parser:/UEBA_WEB/templates/parsers
+      - ./tenants:/UEBA/tenants # ✅ 추가: 테넌트 데이터/모델/아티팩트 접근
     networks:
       - ueba-network
 
-  # 4. Backend API (FastAPI)
+  # 4. Backend API (FastAPI / Python 3.10 -> 3.12-slim)
   backend:
-    image: python:3.10-slim
+    build: ./backend
     container_name: ueba-backend
     working_dir: /app
-    command: tail -f /dev/null # 컨테이너 유지용 (내부에서 FastAPI 실행 예정)
+    command: python3 -m app.main
     volumes:
       - ./backend:/app
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./tenants:/UEBA/tenants          # ✅ 추가: 테넌트 저장소(로그/모델/설정/아티팩트)
+      - ./license.yaml:/UEBA/license.yaml:ro  # ✅ 추가: 라이선스 파일(읽기전용 권장)
     ports:
       - "8000:8000"
+      - "5514:5514/udp"
+    environment:
+      - PYTHONPATH=/app
     networks:
       - ueba-network
 
-  # 5. Frontend (Vue.js)
+  # 5. Frontend (Vue.js / Node 18 -> 20-alpine)
   frontend:
-    image: node:18-alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: ueba-frontend
-    working_dir: /app
-    command: tail -f /dev/null # 컨테이너 유지용 (내부에서 npm run dev 실행 예정)
     volumes:
       - ./frontend:/app
+      - /app/node_modules # 호스트의 node_modules와 충돌 방지 (중요)
+      - ./license.yaml:/UEBA/license.yaml:ro 
     ports:
       - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true  # WSL/Docker 환경에서 파일 변경 감지 보장
+    stdin_open: true              # Vite 개발 서버 안정성을 위해 추가
+    tty: true                     # 터미널(Teletypewriter: TTY)을 할당
+    depends_on:
+      - backend
     networks:
       - ueba-network
 
-  # 6. Elasticsearch 관리 및 시각화 도구 ( KIBANA )
+  # 6. Elasticsearch 관리 및 시각화 도구 ( KIBANA / 8.10.2 -> 8.17.0)
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.10.2
+    image: docker.elastic.co/kibana/kibana:8.17.0
     container_name: ueba-kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://ueba-elasticsearch:9200
@@ -99,8 +113,10 @@ services:
       - ueba-network
     depends_on:
       - elasticsearch
-      
+
 # 서비스 간 컨테이너 이름으로 통신하기 위한 전용 네트워크 설정
 networks:
   ueba-network:
     driver: bridge
+
+  
